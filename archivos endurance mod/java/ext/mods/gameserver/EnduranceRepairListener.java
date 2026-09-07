@@ -6,12 +6,9 @@ package ext.mods.gameserver;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import ext.mods.extensions.listener.command.OnBypassCommandListener;
 import ext.mods.gameserver.data.xml.ItemData;
-import ext.mods.gameserver.model.WorldObject;
-import ext.mods.gameserver.model.actor.Npc;
 import ext.mods.gameserver.model.actor.Player;
 import ext.mods.gameserver.model.item.instance.ItemInstance;
 import ext.mods.gameserver.network.serverpackets.NpcHtmlMessage;
@@ -50,15 +47,8 @@ public class EnduranceRepairListener implements OnBypassCommandListener
 	
 	private void showRepairWindow(Player player)
 	{
-		final Npc npc = getValidBlacksmith(player);
-		if (npc == null)
-		{
-			player.sendMessage("You must be near a blacksmith to repair equipment.");
-			return;
-		}
-		
 		final List<ItemInstance> damagedItems = getDamagedItems(player);
-		final NpcHtmlMessage html = new NpcHtmlMessage(npc.getObjectId());
+		final NpcHtmlMessage html = new NpcHtmlMessage(0);
 		final String currencyName = getRepairCurrencyName();
 		final StringBuilder content = new StringBuilder(1024);
 		
@@ -103,13 +93,6 @@ public class EnduranceRepairListener implements OnBypassCommandListener
 	
 	private void repairItem(Player player, int objectId)
 	{
-		final Npc npc = getValidBlacksmith(player);
-		if (npc == null)
-		{
-			player.sendMessage("You must be near a blacksmith to repair equipment.");
-			return;
-		}
-		
 		final ItemInstance item = player.getInventory().getItemByObjectId(objectId);
 		if (item == null || !item.isEnduranceItem())
 		{
@@ -197,19 +180,6 @@ public class EnduranceRepairListener implements OnBypassCommandListener
 			return -1;
 		
 		return EnduranceConfig.ENDURANCE_REPAIR_BASE_COST + missing * EnduranceConfig.ENDURANCE_REPAIR_COST_PER_POINT;
-	}
-	
-	private Npc getValidBlacksmith(Player player)
-	{
-		final WorldObject target = player.getTarget();
-		if (!(target instanceof Npc npc))
-			return null;
-		
-		final String npcName = npc.getName();
-		if (!npc.getTemplate().isType("Trainer") || npcName == null || !npcName.toLowerCase(Locale.ROOT).contains("blacksmith"))
-			return null;
-		
-		return player.getAI() != null && player.getAI().canDoInteract(npc) ? npc : null;
 	}
 	
 	private String getRepairCurrencyName()
