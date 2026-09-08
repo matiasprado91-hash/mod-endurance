@@ -59,7 +59,7 @@ public class ItemList extends L2GameServerPacket
 			
 			// Reuse the existing CurrentDurability/CurrentPeriod packet field.
 			// Shadow Weapons keep their original mana/time handling.
-			writeD(temp.isEnduranceItem() ? temp.getEndurance() : temp.getDisplayedManaLeft());
+			writeD(temp.isEnduranceItem() && !temp.isShadowItem() ? temp.getEndurance() : temp.getDisplayedManaLeft());
 		}
 	}
 }
