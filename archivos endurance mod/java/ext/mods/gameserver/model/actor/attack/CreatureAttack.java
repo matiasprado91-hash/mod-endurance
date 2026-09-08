@@ -77,47 +77,31 @@ public class CreatureAttack<T extends Creature> {
         return this._isBowCoolingDown;
     }
 
-    /**
-     * Verifica se o ator pode iniciar um ataque físico contra o alvo.
-     */
     public boolean canAttack(Creature target) {
         if (_isAttackingNow || _isBowCoolingDown) {
             return false;
         }
-
         if (_actor.isAttackingDisabled() || target == null || target.isDead()) {
             return false;
         }
-        
         final int weaponRange = _actor.getStatus().getPhysicalAttackRange();
         final double distance = _actor.distance2D(target);
-        
-        
-        
         int totalAttackRange = (int) (weaponRange + _actor.getCollisionRadius() + target.getCollisionRadius());
-
         if (distance > totalAttackRange) {
             _actor.getMove().maybeStartOffensiveFollow(target, weaponRange);
-           
         }
-
         if (_actor.isMovementDisabled() && distance > totalAttackRange) {
             return false;
         }
-
         if (!_actor.knows(target) || !target.isAttackableBy(_actor)) {
             return false;
         }
-
         if (_actor instanceof Playable && Config.SISTEMA_PATHFINDING) {
             if (!MovementIntegration.canSeeTarget(_actor, target)) {
                 _actor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.CANT_SEE_TARGET));
                 return false;
             }
         }
-
-        
-
         return true;
     }
 
@@ -125,53 +109,42 @@ public class CreatureAttack<T extends Creature> {
         if (!this.isAttackingNow()) {
             return;
         }
-
         Creature mainTarget = this._hitHolders[0]._target;
         if (!_actor.knows(mainTarget) || mainTarget.isDead()) {
             this.stop();
             return;
         }
-
         if (!isTargetInMeleeRange(mainTarget)) {
             if (_actor instanceof Npc) {
                 int attackRange = _actor.getStatus().getPhysicalAttackRange();
                 _actor.getMove().maybeStartOffensiveFollow(mainTarget, attackRange);
             }
-            
             final double dist = _actor.distance2D(mainTarget);
             if (Config.DEBUG_MELEE_ATTACK && _actor instanceof Npc && _actor.getStatus().getPhysicalAttackRange() <= 200) {
                 LOGGER.info("[MeleeDebug] onHitTimer: outOfRangeHit npc={} target={} dist={}", _actor.getObjectId(), mainTarget.getObjectId(), dist);
             }
-            
             if (dist > 300) {
                 this.clearAttackTask(false);
                 return;
             }
         }
-
         if (this._isHit) {
             _actor.setChargedShot(ShotType.SOULSHOT, false);
         }
-
         if (_actor instanceof Playable) {
             _actor.rechargeShots(true, false);
         }
-
         long finalDelay = Math.max(150, (long) this._afterAttackDelay);
-
         switch (this._weaponType) {
             case BOW: {
                 this.doHit(this._hitHolders[0]);
                 this.finishWeaponWear();
-                
                 this._isAttackingNow = false;
                 this._isBowCoolingDown = true;
-                
                 this._attackTask = ThreadPool.schedule(() -> {
                     this._isBowCoolingDown = false;
                     this._actor.getAI().notifyEvent(AiEventType.BOW_ATTACK_REUSED, null, null);
                 }, finalDelay);
-                
                 this.onFinishedAttackBow(mainTarget);
                 break;
             }
@@ -211,7 +184,6 @@ public class CreatureAttack<T extends Creature> {
         if (_weaponType == WeaponType.BOW) {
             return true;
         }
-
         int attackRange = _actor.getStatus().getPhysicalAttackRange();
         int totalAttackRange = (int) (attackRange + _actor.getCollisionRadius() + target.getCollisionRadius());
         int tolerance = 20;
@@ -223,20 +195,17 @@ public class CreatureAttack<T extends Creature> {
             if (_actor.getStatus().getPhysicalAttackRange() > 200) {
                 _actor.getMove().repositionAfterAttack(mainTarget);
             }
-            
             ((NpcAI) _actor.getAI()).runAI(false);
         }
         _actor.getAI().notifyEvent(AiEventType.FINISHED_ATTACK_BOW, null, null);
     }
-    
+
     protected void onFinishedAttack(Creature mainTarget) {
         this.clearAttackTask(false);
-        
         if (_actor instanceof Npc) {
             if (_actor.getStatus().getPhysicalAttackRange() > 200) {
                 _actor.getMove().repositionAfterAttack(mainTarget);
             }
-    
             ((NpcAI) _actor.getAI()).runAI(false);
         }
         _actor.getAI().notifyEvent(AiEventType.FINISHED_ATTACK, null, null);
@@ -248,35 +217,28 @@ public class CreatureAttack<T extends Creature> {
             _actor.getAI().startAttackStance();
             target.getAI().notifyEvent(AiEventType.EVADED, _actor, null);
         }
-
         _actor.sendDamageMessage(target, hitHolder._damage, false, hitHolder._crit, hitHolder._miss);
         _actor.getAI().startAttackStance();
-        
         if (Config.DEBUG_MELEE_ATTACK && _actor instanceof Npc && _actor.getStatus().getPhysicalAttackRange() <= 200) {
             LOGGER.info("[MeleeDebug] doHit: npc={} target={} dmg={} crit={} miss={}", _actor.getObjectId(), target.getObjectId(), hitHolder._damage, hitHolder._crit, hitHolder._miss);
         }
-
         if (!hitHolder._miss) {
             applyWeaponWear();
         }
-
         if (!hitHolder._miss && hitHolder._damage > 0) {
             target.getAI().notifyEvent(AiEventType.ATTACKED, _actor, null);
             target.reduceCurrentHp(hitHolder._damage, _actor, null);
-            
             double reflectPercent = target.getStatus().calcStat(Stats.REFLECT_DAMAGE_PERCENT, 0.0, null, null);
             if (_weaponType != WeaponType.BOW && !target.isInvul() && reflectPercent > 0.0) {
                 int reflectedDamage = (int) (reflectPercent / 100.0 * hitHolder._damage);
                 _actor.reduceCurrentHp(Math.min(reflectedDamage, target.getStatus().getMaxHp()), target, true, false, null);
             }
-
             if (_weaponType != WeaponType.BOW) {
                 double absorbPercent = _actor.getStatus().calcStat(Stats.ABSORB_DAMAGE_PERCENT, 0.0, null, null);
                 if (absorbPercent > 0.0) {
                     _actor.getStatus().addHp(absorbPercent / 100.0 * hitHolder._damage);
                 }
             }
-
             Formulas.calcCastBreak(target, hitHolder._damage);
             ChanceSkillList chanceSkills = _actor.getChanceSkills();
             if (chanceSkills != null) {
@@ -285,7 +247,6 @@ public class CreatureAttack<T extends Creature> {
             if (target.getChanceSkills() != null) {
                 target.getChanceSkills().onSelfHit(_actor);
             }
-            
             Weapon activeWeapon = _actor.getActiveWeaponItem();
             if (hitHolder._crit && activeWeapon != null) {
                 activeWeapon.castSkillOnCrit(_actor, target);
@@ -297,55 +258,46 @@ public class CreatureAttack<T extends Creature> {
         if (_weaponWearApplied || _attackWeapon == null || !_attackWeapon.isEnduranceItem() || _attackWeapon.isShadowItem() || _attackWeapon.isBroken()) {
             return;
         }
-
         _weaponWearApplied = true;
-
-        if (!chanceSucceeded(EnduranceConfig.ENDURANCE_WEAPON_CHANCE))
+        if (!chanceSucceeded(EnduranceConfig.ENDURANCE_WEAPON_CHANCE)) {
             return;
-
+        }
         _attackWeapon.setEndurance(_attackWeapon.getEndurance() - EnduranceConfig.ENDURANCE_WEAPON_LOSS);
-
-        if (_attackWeapon.isBroken() && _actor instanceof Player)
+        if (_attackWeapon.isBroken() && _actor instanceof Player) {
             _weaponBrokenPendingUnequip = true;
+        }
     }
 
-    private void finishWeaponWear()
-    {
-        if (!_weaponBrokenPendingUnequip || !(_actor instanceof Player player) || _attackWeapon == null)
+    private void finishWeaponWear() {
+        if (!_weaponBrokenPendingUnequip || !(_actor instanceof Player player) || _attackWeapon == null) {
             return;
-
+        }
         _weaponBrokenPendingUnequip = false;
-
-        if (_attackWeapon.isBroken() && _attackWeapon.isEquipped())
+        if (_attackWeapon.isBroken() && _attackWeapon.isEquipped()) {
             player.getInventory().unequipItemInBodySlotAndRecord(_attackWeapon);
+        }
     }
 
-    private boolean chanceSucceeded(int chance)
-    {
-        if (chance <= 0)
+    private boolean chanceSucceeded(int chance) {
+        if (chance <= 0) {
             return false;
-
-        if (chance >= 100)
+        }
+        if (chance >= 100) {
             return true;
-
+        }
         return ThreadLocalRandom.current().nextInt(100) < chance;
     }
 
     public void doAttack(Creature target) {
-        
-        
         if (_isAttackingNow && _attackTask == null) {
             _isAttackingNow = false;
         }
-
         if (_isAttackingNow || _isBowCoolingDown) {
             return;
         }
-        
         if (Config.DEBUG_MELEE_ATTACK && _actor instanceof Npc && _actor.getStatus().getPhysicalAttackRange() <= 200) {
             LOGGER.info("[MeleeDebug] doAttack: npc={} target={} moving={} dist={}", _actor.getObjectId(), target.getObjectId(), _actor.isMoving(), _actor.distance2D(target));
         }
-
         int timeAtk = Formulas.calculateTimeBetweenAttacks(_actor);
         Weapon weaponItem = _actor.getActiveWeaponItem();
         this._attackWeapon = _actor.getActiveWeaponInstance();
@@ -353,16 +305,13 @@ public class CreatureAttack<T extends Creature> {
         this._weaponBrokenPendingUnequip = false;
         boolean isSoulshot = _actor.isChargedShot(ShotType.SOULSHOT);
         _actor.getPosition().setHeadingTo(target);
-
         HitHolder[] hits = switch (_actor.getAttackType()) {
             case WeaponType.BOW -> this.doAttackHitByBow(target, weaponItem, timeAtk, isSoulshot);
             case WeaponType.DUAL, WeaponType.DUALFIST -> this.doAttackHitByDual(target, weaponItem, timeAtk, isSoulshot);
             case WeaponType.POLE -> this.doAttackHitByPole(target, weaponItem, timeAtk, isSoulshot);
             default -> this.doAttackHitSimple(target, weaponItem, timeAtk, isSoulshot);
         };
-
         if (hits != null) {
-            
             _actor.broadcastPacket(new Attack(_actor, hits));
         }
     }
@@ -374,17 +323,14 @@ public class CreatureAttack<T extends Creature> {
             _actor.reduceArrowCount();
         }
         _actor.getStatus().reduceMp(_actor.getActiveWeaponItem().getMpConsume());
-        
         HitHolder[] hits = new HitHolder[]{this.getHitHolder(target, isSoulshot, false)};
         int reuse = weapon.getReuseDelay();
         if (reuse != 0) {
             reuse = reuse * 345 / _actor.getStatus().getPAtkSpd();
         }
-
         int safeAtkTime = Math.max(200, sAtk);
         this.setAttackTask(hits, weapon, reuse, isSoulshot);
         this._attackTask = ThreadPool.schedule(this::onHitTimer, (long) safeAtkTime);
-
         if (_actor instanceof Player) {
             _actor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.GETTING_READY_TO_SHOOT_AN_ARROW));
             _actor.sendPacket(new SetupGauge(GaugeColor.RED, safeAtkTime + reuse));
@@ -403,7 +349,6 @@ public class CreatureAttack<T extends Creature> {
     private HitHolder[] doAttackHitByPole(Creature target, Weapon weapon, int sAtk, boolean isSoulshot) {
         ArrayList<HitHolder> hitHolders = new ArrayList<>();
         hitHolders.add(this.getHitHolder(target, isSoulshot, false));
-        
         int maxAttackedCount = _actor.getFirstEffect(EffectType.POLEARM_TARGET_SINGLE) != null ? 1 : (int) _actor.getStatus().calcStat(Stats.ATTACK_COUNT_MAX, 0.0, null, null);
         if (maxAttackedCount > 1) {
             int maxAngleDiff = (int) _actor.getStatus().calcStat(Stats.POWER_ATTACK_ANGLE, 120.0, null, null);
@@ -415,7 +360,6 @@ public class CreatureAttack<T extends Creature> {
                 if (hitHolders.size() >= maxAttackedCount) break;
             }
         }
-        
         HitHolder[] hits = hitHolders.toArray(new HitHolder[0]);
         int safeAtkTime = Math.max(200, sAtk);
         this.setAttackTask(hits, weapon, safeAtkTime, isSoulshot);
@@ -423,15 +367,54 @@ public class CreatureAttack<T extends Creature> {
         return hits;
     }
 
-    private void setAttackTask(HitHolder[] hitHolders, WeaponType weaponType, int afterAttackDelay, boolean isSoulshot) {
+    private HitHolder[] doAttackHitSimple(Creature target, Weapon weapon, int sAtk, boolean isSoulshot) {
+        HitHolder[] hits = new HitHolder[]{this.getHitHolder(target, isSoulshot, false)};
+        int safeAtkTime = Math.max(200, sAtk);
+        this.setAttackTask(hits, weapon, safeAtkTime, isSoulshot);
+        this._attackTask = ThreadPool.schedule(this::onHitTimer, (long) safeAtkTime);
+        return hits;
+    }
+
+    private HitHolder getHitHolder(Creature target, boolean isSoulshot, boolean isSplit) {
+        boolean crit = false;
+        ShieldDefense shld = ShieldDefense.FAILED;
+        int damage = 0;
+        boolean miss = Formulas.calcHitMiss(_actor, target);
+        if (!miss) {
+            crit = Formulas.calcCrit(_actor, target, null);
+            shld = Formulas.calcShldUse(_actor, target, null, crit);
+            damage = (int) Formulas.calcPhysicalAttackDamage(_actor, target, shld, crit, isSoulshot);
+            if (isSplit) {
+                damage /= 2;
+            }
+        }
+        return new HitHolder(target, damage, crit, miss, shld);
+    }
+
+    public void stop() {
+        if (this._attackTask != null) {
+            this._attackTask.cancel(false);
+            this._attackTask = null;
+        }
+        this.clearAttackTask(true);
+    }
+
+    public void interrupt() {
+        if (this.isAttackingNow()) {
+            this.stop();
+            _actor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ATTACK_FAILED));
+        }
+    }
+
+    private void setAttackTask(HitHolder[] hitHolders, Weapon weapon, int afterAttackDelay, boolean isSoulshot) {
+        WeaponType weaponType = weapon == null ? WeaponType.ETC : weapon.getItemType();
         this._isAttackingNow = true;
-        this._isBowCoolingDown = false; 
+        this._isBowCoolingDown = false;
         this._hitHolders = hitHolders;
         this._weaponType = weaponType;
         this._afterAttackDelay = afterAttackDelay;
         this._isHit = false;
-        
-        final int weaponGrade = weaponType == null ? 0 : (this._actor.getActiveWeaponItem() == null ? 0 : this._actor.getActiveWeaponItem().getCrystalType().getId());
+        final int weaponGrade = weapon == null ? 0 : weapon.getCrystalType().getId();
         for (HitHolder hit : this._hitHolders) {
             if (hit._miss) {
                 hit._flags = 128;
