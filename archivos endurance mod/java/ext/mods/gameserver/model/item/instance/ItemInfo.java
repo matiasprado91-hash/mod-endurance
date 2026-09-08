@@ -31,6 +31,8 @@ public class ItemInfo
 	private int _type2;
 	private int _equipped;
 	private int _manaLeft;
+	private int _endurance;
+	private boolean _isEnduranceItem;
 	
 	private Item _item;
 	
@@ -48,10 +50,9 @@ public class ItemInfo
 		_type1 = item.getCustomType1();
 		_type2 = item.getCustomType2();
 		_equipped = item.isEquipped() ? 1 : 0;
-		
-		// Reuse the existing Interlude packet field that the client parses as
-		// CurrentDurability/Durability. Shadow Weapons keep their own mana/time.
-		_manaLeft = (item.isEnduranceItem() && !item.isShadowItem()) ? item.getEndurance() * 60 : item.getManaLeft();
+		_manaLeft = item.getManaLeft();
+		_isEnduranceItem = item.isEnduranceItem() && !item.isShadowItem();
+		_endurance = _isEnduranceItem ? item.getEndurance() : -1;
 		
 		_item = item.getItem();
 		
@@ -115,6 +116,6 @@ public class ItemInfo
 	
 	public int getDisplayedManaLeft()
 	{
-		return _manaLeft / 60;
+		return _isEnduranceItem ? _endurance : _manaLeft / 60;
 	}
 }
