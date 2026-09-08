@@ -1,0 +1,65 @@
+/*
+* Copyleft © 2024-2026 L2Lineternity
+* * This file is part of L2Lineternity derived from aCis409/RusaCis3.8
+* * L2Lineternity is free software: you can redistribute it and/or modify it
+* under the terms of the GNU General Public License as published by the
+* Free Software Foundation, either version 3 of the License.
+* * L2Lineternity is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+* General Public License for more details.
+* * You should have received a copy of the GNU General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>.
+* Our main Developers, Dhousefe-L2JBR, Agazes33, Ban-L2jDev, Warman, SrEli.
+* as a contribution for the forum L2JBrasil.com
+ */
+package ext.mods.gameserver.network.serverpackets;
+
+import java.util.Set;
+
+import ext.mods.gameserver.model.actor.Player;
+import ext.mods.gameserver.model.item.instance.ItemInstance;
+import ext.mods.gameserver.model.item.kind.Item;
+
+public class ItemList extends L2GameServerPacket
+{
+	private final Set<ItemInstance> _items;
+	private final boolean _showWindow;
+	
+	public ItemList(Player player, boolean showWindow)
+	{
+		player.getInventory().clearUpdateList();
+		
+		_items = player.getInventory().getItems();
+		_showWindow = showWindow;
+	}
+	
+	@Override
+	protected final void writeImpl()
+	{
+		writeC(0x1b);
+		writeH(_showWindow ? 0x01 : 0x00);
+		writeH(_items.size());
+		
+		for (ItemInstance temp : _items)
+		{
+			Item item = temp.getItem();
+			
+			writeH(item.getType1());
+			writeD(temp.getObjectId());
+			writeD(temp.getItemId());
+			writeD(temp.getCount());
+			writeH(item.getType2());
+			writeH(temp.getCustomType1());
+			writeH(temp.isEquipped() ? 0x01 : 0x00);
+			writeD(item.getBodyPart());
+			writeH(temp.getEnchantLevel());
+			writeH(temp.getCustomType2());
+			writeD((temp.isAugmented()) ? temp.getAugmentation().getId() : 0x00);
+			
+			// Reuse the existing CurrentDurability/CurrentPeriod packet field.
+			// Shadow Weapons keep their original mana/time handling.
+			writeD(temp.isEnduranceItem() ? temp.getEndurance() : temp.getDisplayedManaLeft());
+		}
+	}
+}
