@@ -49,10 +49,9 @@ public class ItemInfo
 		_type2 = item.getCustomType2();
 		_equipped = item.isEquipped() ? 1 : 0;
 		
-		// The Interlude client already displays the packet's mana/time field
-		// as CurrentDurability/Durability. Endurance reuses that existing field
-		// without changing Shadow Weapon mana handling in ItemInstance.
-		_manaLeft = item.isEnduranceItem() ? item.getEndurance() * 60 : item.getManaLeft();
+		// Reuse the existing Interlude packet field that the client parses as
+		// CurrentDurability/Durability. Shadow Weapons keep their own mana/time.
+		_manaLeft = (item.isEnduranceItem() && !item.isShadowItem()) ? item.getEndurance() * 60 : item.getManaLeft();
 		
 		_item = item.getItem();
 		
