@@ -294,7 +294,7 @@ public class CreatureAttack<T extends Creature> {
     }
 
     private void applyWeaponWear() {
-        if (_weaponWearApplied || _attackWeapon == null || !_attackWeapon.isEnduranceItem() || _attackWeapon.isBroken()) {
+        if (_weaponWearApplied || _attackWeapon == null || !_attackWeapon.isEnduranceItem() || _attackWeapon.isShadowItem() || _attackWeapon.isBroken()) {
             return;
         }
 
