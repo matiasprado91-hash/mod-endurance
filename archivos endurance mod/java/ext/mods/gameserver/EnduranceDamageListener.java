@@ -25,12 +25,12 @@ public class EnduranceDamageListener implements OnCurrentHpDamageListener
         applyArmorWear(player, Paperdoll.LEGS);
         applyArmorWear(player, Paperdoll.GLOVES);
         applyArmorWear(player, Paperdoll.FEET);
-        applyArmorWear(player, Paperdoll.L_HAND);
+        applyArmorWear(player, Paperdoll.LHAND);
     }
 
     private void applyArmorWear(Player player, Paperdoll slot)
     {
-        final ItemInstance item = player.getInventory().getPaperdollItem(slot);
+        final ItemInstance item = player.getInventory().getItemFrom(slot);
 
         if (item == null || !item.isEnduranceItem() || item.isBroken())
             return;
