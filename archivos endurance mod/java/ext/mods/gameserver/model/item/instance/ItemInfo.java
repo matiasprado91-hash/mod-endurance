@@ -116,6 +116,9 @@ public class ItemInfo
 	
 	public int getDisplayedManaLeft()
 	{
-		return _isEnduranceItem ? _endurance : _manaLeft / 60;
+		if (_isEnduranceItem)
+			return _endurance;
+		
+		return (_manaLeft < 0) ? -1 : _manaLeft / 60;
 	}
 }
