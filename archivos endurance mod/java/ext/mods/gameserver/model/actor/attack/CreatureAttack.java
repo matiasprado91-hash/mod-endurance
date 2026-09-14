@@ -41,7 +41,6 @@ import ext.mods.gameserver.model.item.instance.ItemInstance;
 import ext.mods.gameserver.model.item.kind.Weapon;
 import ext.mods.gameserver.network.SystemMessageId;
 import ext.mods.gameserver.network.serverpackets.Attack;
-import ext.mods.gameserver.network.serverpackets.ItemList;
 import ext.mods.gameserver.network.serverpackets.L2GameServerPacket;
 import ext.mods.gameserver.network.serverpackets.SetupGauge;
 import ext.mods.gameserver.network.serverpackets.SystemMessage;
@@ -264,12 +263,6 @@ public class CreatureAttack<T extends Creature> {
             return;
         }
         _attackWeapon.setEndurance(_attackWeapon.getEndurance() - EnduranceConfig.ENDURANCE_WEAPON_LOSS);
-        if (_actor instanceof Player player) {
-            _attackWeapon.updateState(player, ext.mods.gameserver.enums.items.ItemState.MODIFIED);
-            if (!_attackWeapon.isBroken()) {
-                player.sendPacket(new ItemList(player, false));
-            }
-        }
         if (_attackWeapon.isBroken() && _actor instanceof Player) {
             _weaponBrokenPendingUnequip = true;
         }
@@ -282,7 +275,6 @@ public class CreatureAttack<T extends Creature> {
         _weaponBrokenPendingUnequip = false;
         if (_attackWeapon.isBroken() && _attackWeapon.isEquipped()) {
             player.getInventory().unequipItemInBodySlotAndRecord(_attackWeapon);
-            player.sendPacket(new ItemList(player, false));
         }
     }
 
@@ -336,3 +328,135 @@ public class CreatureAttack<T extends Creature> {
         if (reuse != 0) {
             reuse = reuse * 345 / _actor.getStatus().getPAtkSpd();
         }
+        int safeAtkTime = Math.max(200, sAtk);
+        this.setAttackTask(hits, weapon, reuse, isSoulshot);
+        this._attackTask = ThreadPool.schedule(this::onHitTimer, (long) safeAtkTime);
+        if (_actor instanceof Player) {
+            _actor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.GETTING_READY_TO_SHOOT_AN_ARROW));
+            _actor.sendPacket(new SetupGauge(GaugeColor.RED, safeAtkTime + reuse));
+        }
+        return hits;
+    }
+
+    private HitHolder[] doAttackHitByDual(Creature target, Weapon weapon, int sAtk, boolean isSoulshot) {
+        HitHolder[] hits = new HitHolder[]{this.getHitHolder(target, isSoulshot, true), this.getHitHolder(target, isSoulshot, true)};
+        int safeAtkTime = Math.max(200, sAtk);
+        this.setAttackTask(hits, weapon, safeAtkTime / 2, isSoulshot);
+        this._attackTask = ThreadPool.schedule(this::onHitTimer, (long) (safeAtkTime / 2));
+        return hits;
+    }
+
+    private HitHolder[] doAttackHitByPole(Creature target, Weapon weapon, int sAtk, boolean isSoulshot) {
+        ArrayList<HitHolder> hitHolders = new ArrayList<>();
+        hitHolders.add(this.getHitHolder(target, isSoulshot, false));
+        int maxAttackedCount = _actor.getFirstEffect(EffectType.POLEARM_TARGET_SINGLE) != null ? 1 : (int) _actor.getStatus().calcStat(Stats.ATTACK_COUNT_MAX, 0.0, null, null);
+        if (maxAttackedCount > 1) {
+            int maxAngleDiff = (int) _actor.getStatus().calcStat(Stats.POWER_ATTACK_ANGLE, 120.0, null, null);
+            for (Creature knownCreature : _actor.getKnownTypeInRadius(Creature.class, _actor.getStatus().getPhysicalAttackRange())) {
+                if (knownCreature == target || knownCreature.isDead() || !_actor.isFacing(knownCreature, maxAngleDiff) || !knownCreature.isAttackableBy(_actor)) {
+                    continue;
+                }
+                hitHolders.add(this.getHitHolder(knownCreature, isSoulshot, false));
+                if (hitHolders.size() >= maxAttackedCount) break;
+            }
+        }
+        HitHolder[] hits = hitHolders.toArray(new HitHolder[0]);
+        int safeAtkTime = Math.max(200, sAtk);
+        this.setAttackTask(hits, weapon, safeAtkTime, isSoulshot);
+        this._attackTask = ThreadPool.schedule(this::onHitTimer, (long) safeAtkTime);
+        return hits;
+    }
+
+    private HitHolder[] doAttackHitSimple(Creature target, Weapon weapon, int sAtk, boolean isSoulshot) {
+        HitHolder[] hits = new HitHolder[]{this.getHitHolder(target, isSoulshot, false)};
+        int safeAtkTime = Math.max(200, sAtk);
+        this.setAttackTask(hits, weapon, safeAtkTime, isSoulshot);
+        this._attackTask = ThreadPool.schedule(this::onHitTimer, (long) safeAtkTime);
+        return hits;
+    }
+
+    private HitHolder getHitHolder(Creature target, boolean isSoulshot, boolean isSplit) {
+        boolean crit = false;
+        ShieldDefense shld = ShieldDefense.FAILED;
+        int damage = 0;
+        boolean miss = Formulas.calcHitMiss(_actor, target);
+        if (!miss) {
+            crit = Formulas.calcCrit(_actor, target, null);
+            shld = Formulas.calcShldUse(_actor, target, null, crit);
+            damage = (int) Formulas.calcPhysicalAttackDamage(_actor, target, shld, crit, isSoulshot);
+            if (isSplit) {
+                damage /= 2;
+            }
+        }
+        return new HitHolder(target, damage, crit, miss, shld);
+    }
+
+    public void stop() {
+        if (this._attackTask != null) {
+            this._attackTask.cancel(false);
+            this._attackTask = null;
+        }
+        this.clearAttackTask(true);
+    }
+
+    public void interrupt() {
+        if (this.isAttackingNow()) {
+            this.stop();
+            _actor.sendPacket(SystemMessage.getSystemMessage(SystemMessageId.ATTACK_FAILED));
+        }
+    }
+
+    private void setAttackTask(HitHolder[] hitHolders, Weapon weapon, int afterAttackDelay, boolean isSoulshot) {
+        WeaponType weaponType = weapon == null ? WeaponType.ETC : weapon.getItemType();
+        this._isAttackingNow = true;
+        this._isBowCoolingDown = false;
+        this._hitHolders = hitHolders;
+        this._weaponType = weaponType;
+        this._afterAttackDelay = afterAttackDelay;
+        this._isHit = false;
+        final int weaponGrade = weapon == null ? 0 : weapon.getCrystalType().getId();
+        for (HitHolder hit : this._hitHolders) {
+            if (hit._miss) {
+                hit._flags = 128;
+                continue;
+            }
+            this._isHit = true;
+            if (isSoulshot) {
+                hit._flags = 0x10 | weaponGrade;
+            }
+            if (hit._crit) {
+                hit._flags |= 0x20;
+            }
+            if (hit._sDef != ShieldDefense.FAILED) {
+                hit._flags |= 0x40;
+            }
+        }
+    }
+
+    private void clearAttackTask(boolean clearBowCooldown) {
+        this._isAttackingNow = false;
+        if (clearBowCooldown) {
+            this._isBowCoolingDown = false;
+        }
+    }
+
+    public static class HitHolder {
+        public Creature _target;
+        public int _targetId;
+        public int _damage;
+        public boolean _crit;
+        public boolean _miss;
+        public ShieldDefense _sDef;
+        public int _flags;
+
+        public HitHolder(Creature target, int damage, boolean crit, boolean miss, ShieldDefense sDef) {
+            this._target = target;
+            this._targetId = target.getObjectId();
+            this._damage = damage;
+            this._crit = crit;
+            this._miss = miss;
+            this._sDef = sDef;
+            this._flags = 0;
+        }
+    }
+}
