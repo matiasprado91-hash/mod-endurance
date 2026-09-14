@@ -8,6 +8,7 @@ import ext.mods.gameserver.enums.items.ItemState;
 import ext.mods.gameserver.model.actor.Creature;
 import ext.mods.gameserver.model.actor.Player;
 import ext.mods.gameserver.model.item.instance.ItemInstance;
+import ext.mods.gameserver.network.serverpackets.ItemList;
 import ext.mods.gameserver.skills.L2Skill;
 
 public class EnduranceDamageListener implements OnCurrentHpDamageListener
@@ -42,9 +43,15 @@ public class EnduranceDamageListener implements OnCurrentHpDamageListener
         item.setEndurance(item.getEndurance() - EnduranceConfig.ENDURANCE_ARMOR_LOSS);
 
         if (item.isBroken() && item.isEquipped())
+        {
             player.getInventory().unequipItemInBodySlotAndRecord(item);
+            player.sendPacket(new ItemList(player, false));
+        }
         else
+        {
             item.updateState(player, ItemState.MODIFIED);
+            player.sendPacket(new ItemList(player, false));
+        }
     }
 
     private boolean chanceSucceeded(int chance)
