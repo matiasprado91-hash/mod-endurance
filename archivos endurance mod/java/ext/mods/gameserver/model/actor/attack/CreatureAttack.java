@@ -41,6 +41,7 @@ import ext.mods.gameserver.model.item.instance.ItemInstance;
 import ext.mods.gameserver.model.item.kind.Weapon;
 import ext.mods.gameserver.network.SystemMessageId;
 import ext.mods.gameserver.network.serverpackets.Attack;
+import ext.mods.gameserver.network.serverpackets.ItemList;
 import ext.mods.gameserver.network.serverpackets.L2GameServerPacket;
 import ext.mods.gameserver.network.serverpackets.SetupGauge;
 import ext.mods.gameserver.network.serverpackets.SystemMessage;
@@ -265,6 +266,9 @@ public class CreatureAttack<T extends Creature> {
         _attackWeapon.setEndurance(_attackWeapon.getEndurance() - EnduranceConfig.ENDURANCE_WEAPON_LOSS);
         if (_actor instanceof Player player) {
             _attackWeapon.updateState(player, ext.mods.gameserver.enums.items.ItemState.MODIFIED);
+            if (!_attackWeapon.isBroken()) {
+                player.sendPacket(new ItemList(player, false));
+            }
         }
         if (_attackWeapon.isBroken() && _actor instanceof Player) {
             _weaponBrokenPendingUnequip = true;
@@ -278,6 +282,7 @@ public class CreatureAttack<T extends Creature> {
         _weaponBrokenPendingUnequip = false;
         if (_attackWeapon.isBroken() && _attackWeapon.isEquipped()) {
             player.getInventory().unequipItemInBodySlotAndRecord(_attackWeapon);
+            player.sendPacket(new ItemList(player, false));
         }
     }
 
