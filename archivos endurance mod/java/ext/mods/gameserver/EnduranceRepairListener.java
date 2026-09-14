@@ -7,7 +7,7 @@ package ext.mods.gameserver;
 import java.util.ArrayList;
 import java.util.List;
 
-import ext.mods.extensions.listener.OnBypassCommandListener;
+import ext.mods.extensions.listener.command.OnBypassCommandListener;
 import ext.mods.gameserver.data.xml.ItemData;
 import ext.mods.gameserver.enums.items.ItemState;
 import ext.mods.gameserver.model.actor.Player;
