@@ -45,12 +45,12 @@ public class EnduranceDamageListener implements OnCurrentHpDamageListener
         if (item.isBroken() && item.isEquipped())
         {
             player.getInventory().unequipItemInBodySlotAndRecord(item);
-            player.sendPacket(new ItemList(player, false));
+            player.sendIU();
         }
         else
         {
             item.updateState(player, ItemState.MODIFIED);
-            player.sendPacket(new ItemList(player, false));
+            player.sendIU();
         }
     }
 
