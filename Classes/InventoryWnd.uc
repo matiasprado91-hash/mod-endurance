@@ -240,6 +240,21 @@ function OnShow()
 	{
 		HideWindow(m_WindowName$".CrystallizeButton");
 	}
+
+	/*
+	 * The native ItemWindow update above must not replace the selected
+	 * equipped item. Refresh the open tooltip directly with the same
+	 * 2610 payload so Endurance is redrawn immediately.
+	 */
+	if( Type == "update" )
+	{
+		tooltipScript = ToolTip(GetScript("ToolTip"));
+		if( tooltipScript != None )
+		{
+			tooltipScript.HandleInventoryItemUpdate(param);
+		}
+	}
+
 	SetAdenaText();
 	SetItemCount();
 	UpdateHennaInfo();
@@ -1605,6 +1620,7 @@ function HandleUpdateItem (string param)
 {
 	local string Type;
 	local ItemInfo Info;
+	local ToolTip tooltipScript;
 
 
 	local int Index;
