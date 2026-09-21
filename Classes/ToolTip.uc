@@ -76,13 +76,13 @@ function HandleInventoryItemUpdate(string param)
 {
     local ItemInfo Info;
 
+    ParamToItemInfo(param, Info);
+    UpdateEnduranceCache(Info);
+
     if (!LastTooltipIsItem)
     {
         return;
     }
-
-    ParamToItemInfo(param, Info);
-    UpdateEnduranceCache(Info);
 
     if (Info.ServerID != LastTooltipServerID)
     {
