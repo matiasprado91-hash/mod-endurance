@@ -23,6 +23,7 @@ import ext.mods.commons.pool.ThreadPool;
 import ext.mods.gameserver.EnduranceConfig;
 import ext.mods.gameserver.enums.AiEventType;
 import ext.mods.gameserver.enums.GaugeColor;
+import ext.mods.gameserver.enums.items.ItemState;
 import ext.mods.gameserver.enums.ZoneId;
 import ext.mods.gameserver.enums.items.ShotType;
 import ext.mods.gameserver.enums.items.WeaponType;
@@ -263,6 +264,9 @@ public class CreatureAttack<T extends Creature> {
             return;
         }
         _attackWeapon.setEndurance(_attackWeapon.getEndurance() - EnduranceConfig.ENDURANCE_WEAPON_LOSS);
+        if (_actor instanceof Player player) {
+            _attackWeapon.updateState(player, ItemState.MODIFIED);
+        }
         if (_attackWeapon.isBroken() && _actor instanceof Player) {
             _weaponBrokenPendingUnequip = true;
         }
