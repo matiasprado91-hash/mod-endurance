@@ -18,6 +18,13 @@ var bool isadmin;
 var int LastTooltipServerID;
 var int LastTooltipDurabilityIndex;
 var bool LastTooltipIsItem;
+/*
+ * Latest endurance received through event 2610.
+ * Keep it outside ItemWindowHandle so SetItem() never has to replace
+ * the native item selection while the tooltip is open.
+ */
+var array<int> EnduranceServerIDs;
+var array<int> EnduranceValues;
 
 const MACROCOMMAND_MAX_COUNT= 12;
 const TOOLTIP_LINE_HGAP= 4;
@@ -36,6 +43,8 @@ function OnLoad ()
     LastTooltipServerID = -1;
     LastTooltipDurabilityIndex = -1;
     LastTooltipIsItem = False;
+    EnduranceServerIDs.Length = 0;
+    EnduranceValues.Length = 0;
 }
 
 
@@ -73,6 +82,7 @@ function HandleInventoryItemUpdate(string param)
     }
 
     ParamToItemInfo(param, Info);
+    UpdateEnduranceCache(Info);
 
     if (Info.ServerID != LastTooltipServerID)
     {
@@ -104,6 +114,55 @@ function HandleInventoryItemUpdate(string param)
     }
 
     ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+function UpdateEnduranceCache(ItemInfo Info)
+{
+	local int Index;
+
+	if( Info.ServerID <= 0 )
+	{
+		return;
+	}
+
+	Index = FindEnduranceCacheIndex(Info.ServerID);
+	if( Index == -1 )
+	{
+		EnduranceServerIDs.Length = EnduranceServerIDs.Length + 1;
+		EnduranceValues.Length = EnduranceValues.Length + 1;
+		Index = EnduranceServerIDs.Length - 1;
+		EnduranceServerIDs[Index] = Info.ServerID;
+	}
+
+	EnduranceValues[Index] = Info.CurrentDurability;
+}
+
+function int FindEnduranceCacheIndex(int ServerID)
+{
+	local int i;
+
+	i = 0;
+	while( i < EnduranceServerIDs.Length )
+	{
+		if( EnduranceServerIDs[i] == ServerID )
+		{
+			return i;
+		}
+		++i;
+	}
+
+	return -1;
+}
+
+function ApplyEnduranceCache(out ItemInfo Info)
+{
+	local int Index;
+
+	Index = FindEnduranceCacheIndex(Info.ServerID);
+	if( Index != -1 )
+	{
+		Info.CurrentDurability = EnduranceValues[Index];
+	}
 }
 
 function Setadminboolean(bool NewValue)
@@ -1172,6 +1231,7 @@ function ReturnTooltip_NTT_ITEM_FARIS (string param, string TooltipType, EToolti
 	if ( eSourceType == 1 )
 	{
 		ParamToItemInfo(param,item);
+		ApplyEnduranceCache(item);
 
 		LastTooltipServerID = item.ServerID;
         LastTooltipIsItem = True;
