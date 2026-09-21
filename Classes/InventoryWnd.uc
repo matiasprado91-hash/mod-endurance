@@ -1072,6 +1072,20 @@ function OnClickCheckBox(string a_param)
 
 
 
+function bool UpdateEquipItemInPlace(ItemWindowHandle hItemWnd, ItemInfo a_Info)
+{
+	local int Index;
+
+	Index = hItemWnd.FindItemWithServerID(a_Info.ServerID);
+	if( Index != -1 )
+	{
+		hItemWnd.SetItem(Index, a_Info);
+		return True;
+	}
+	return False;
+}
+
+
 function EquipItemUpdate(ItemInfo a_Info)
 {
 	local ItemWindowHandle hItemWnd;
@@ -1277,8 +1291,11 @@ function EquipItemUpdate(ItemInfo a_Info)
 	}
 	if( None != hItemWnd )
 	{
-		hItemWnd.Clear();
-		hItemWnd.AddItem(a_Info);
+		if( !UpdateEquipItemInPlace(hItemWnd, a_Info) )
+		{
+			hItemWnd.Clear();
+			hItemWnd.AddItem(a_Info);
+		}
 	}
 }
 
@@ -2498,19 +2515,3 @@ function int GetPotionTypeProx(int Id)
 			return 5;
             // End:0x57
 			break;
-        // End:0xFFFF
-		default:
-			return -1;
-			break;
-	}    
-}
-
-
-
-
-
-// Decompiled with UE Explorer.
-defaultproperties
-{
-    m_WindowName="InventoryWnd"
-}
