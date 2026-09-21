@@ -797,8 +797,7 @@ function OnDropItemSource(string strTarget, ItemInfo Info)
 					DialogSetID(5555);
 					DialogSetReservedInt(Info.ServerID);
 					DialogSetReservedInt2(Info.AllItemCount);
-					DialogShow(DIALOG_Warning, MakeFullSystemMsg(GetSystemMessage(1833), Info.Name, ""));                    
-				}
+					DialogShow(DIALOG_Warning, MakeFullSystemMsg(GetSystemMessage(1833), Info.Name, ""));                    				}
 				else
 				{
 					DialogHide();
@@ -1084,7 +1083,6 @@ function bool UpdateEquipItemInPlace(ItemWindowHandle hItemWnd, ItemInfo a_Info)
 	}
 	return False;
 }
-
 
 function EquipItemUpdate(ItemInfo a_Info)
 {
@@ -1614,8 +1612,7 @@ function HandleUpdateItem (string param)
   
 	if( (GetPotionTypeProx(Info.ClassID)) != -1 )
 	{
-		s_autoPotions.superiorinfota(Info);
-	}
+		s_autoPotions.superiorinfota(Info);	}
   
   
 	if ( (Info.ClassID == zzs_expBar.zzitemCountID) )
@@ -2515,3 +2512,19 @@ function int GetPotionTypeProx(int Id)
 			return 5;
             // End:0x57
 			break;
+        // End:0xFFFF
+		default:
+			return -1;
+			break;
+	}    
+}
+
+
+
+
+
+// Decompiled with UE Explorer.
+defaultproperties
+{
+    m_WindowName="InventoryWnd"
+}
