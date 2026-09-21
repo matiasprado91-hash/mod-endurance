@@ -4,6 +4,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import ext.mods.extensions.listener.OnCurrentHpDamageListener;
 import ext.mods.gameserver.enums.Paperdoll;
+import ext.mods.gameserver.enums.items.ItemState;
 import ext.mods.gameserver.model.actor.Creature;
 import ext.mods.gameserver.model.actor.Player;
 import ext.mods.gameserver.model.item.instance.ItemInstance;
@@ -39,6 +40,7 @@ public class EnduranceDamageListener implements OnCurrentHpDamageListener
             return;
 
         item.setEndurance(item.getEndurance() - EnduranceConfig.ENDURANCE_ARMOR_LOSS);
+        item.updateState(player, ItemState.MODIFIED);
 
         if (item.isBroken() && item.isEquipped())
         {
