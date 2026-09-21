@@ -17,6 +17,7 @@ var bool isadmin;
 
 var int LastTooltipServerID;
 var int LastTooltipDurabilityIndex;
+var int LastTooltipEnduranceIndex;
 var bool LastTooltipIsItem;
 /*
  * Latest endurance received through event 2610.
@@ -42,6 +43,7 @@ function OnLoad ()
 
     LastTooltipServerID = -1;
     LastTooltipDurabilityIndex = -1;
+    LastTooltipEnduranceIndex = -1;
     LastTooltipIsItem = False;
     EnduranceServerIDs.Length = 0;
     EnduranceValues.Length = 0;
@@ -89,29 +91,18 @@ function HandleInventoryItemUpdate(string param)
         return;
     }
 
-    if (LastTooltipDurabilityIndex < 0)
+    if (LastTooltipEnduranceIndex < 0)
     {
         return;
     }
 
-    if (LastTooltipDurabilityIndex >= zzDeobfuscated4592.DrawList.Length)
+    if (LastTooltipEnduranceIndex >= zzDeobfuscated4592.DrawList.Length)
     {
         return;
     }
 
-    zzDeobfuscated4592.DrawList[LastTooltipDurabilityIndex].t_strText =
-        " "$string(Info.CurrentDurability)$"/"$string(Info.Durability);
-
-    if (Info.CurrentDurability <= (1 + 5))
-    {
-        zzDeobfuscated4592.DrawList[LastTooltipDurabilityIndex].t_color =
-            GetColortool(255,0,0,255);
-    }
-    else
-    {
-        zzDeobfuscated4592.DrawList[LastTooltipDurabilityIndex].t_color =
-            GetColortool(176,155,121,255);
-    }
+    zzDeobfuscated4592.DrawList[LastTooltipEnduranceIndex].t_strText =
+        "Endurance : "$string(Info.CurrentDurability)$" || L2Evolution";
 
     ReturnTooltipInfo(zzDeobfuscated4592);
 }
@@ -1673,6 +1664,7 @@ function addTooltipID (ItemInfo item)
 {
 	AddCrossLine();
     AddTooltipColorText("Endurance : " $ string(item.CurrentDurability) $ " || L2Evolution", getAColor(176, 155, 121, 255), true, true,, "", 2);
+    LastTooltipEnduranceIndex = zzDeobfuscated4592.DrawList.Length - 1;
 }
 
 
