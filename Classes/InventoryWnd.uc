@@ -241,20 +241,6 @@ function OnShow()
 		HideWindow(m_WindowName$".CrystallizeButton");
 	}
 
-	/*
-	 * The native ItemWindow update above must not replace the selected
-	 * equipped item. Refresh the open tooltip directly with the same
-	 * 2610 payload so Endurance is redrawn immediately.
-	 */
-	if( Type == "update" )
-	{
-		tooltipScript = ToolTip(GetScript("ToolTip"));
-		if( tooltipScript != None )
-		{
-			tooltipScript.HandleInventoryItemUpdate(param);
-		}
-	}
-
 	SetAdenaText();
 	SetItemCount();
 	UpdateHennaInfo();
@@ -497,8 +483,7 @@ function OnClickButton(string strID)
 		
 		case "btnAddHenna":
 		//	RequestHennaItemList();
-			break;
-		case "btnHennaAdd":
+			break;		case "btnHennaAdd":
 			RequestHennaItemList();
 			break;
 		
@@ -997,8 +982,7 @@ J0x1D:
 			
 			default:
 				break;
-		}
-		++i;
+		}		++i;
 		goto J0x1D;
 	}
 	if( -1 != LEarIndex )
@@ -1497,8 +1481,7 @@ J0x85:
 	{
 		m_questItem.SetItem(FindIdx, NewItem);        
 	}
-	else
-	{
+	else	{
 		m_questItem.AddItem(NewItem);
 	}
 	++m_QuestInvenCount;
@@ -1746,6 +1729,21 @@ function HandleUpdateItem (string param)
 			}
 		}
 	}
+
+	/*
+	 * The native ItemWindow update above must not replace the selected
+	 * equipped item. Refresh the open tooltip directly with the same
+	 * 2610 payload so Endurance is redrawn immediately.
+	 */
+	if( Type == "update" )
+	{
+		tooltipScript = ToolTip(GetScript("ToolTip"));
+		if( tooltipScript != None )
+		{
+			tooltipScript.HandleInventoryItemUpdate(param);
+		}
+	}
+
 	SetAdenaText();
 	SetItemCount();
 	
@@ -1997,8 +1995,7 @@ J0x23:
 			}
 			++orderIndex;
 			goto J0x5A;
-		}
-	J0x99:
+		}	J0x99:
 		if( !matched )
 		{
 			m_invenItem.SwapItems(itemIndex, newItemIndex);
@@ -2497,8 +2494,7 @@ J0xC9:
 				goto J0x1CB;
 			}
 			InvenItemInfo = tempOutItemInfo;
-			bHasItem = True;
-			goto J0x1D5;
+			bHasItem = True;			goto J0x1D5;
 		}
 	J0x1CB:
 		++i;
