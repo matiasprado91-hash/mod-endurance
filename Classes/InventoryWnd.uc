@@ -1074,14 +1074,30 @@ function OnClickCheckBox(string a_param)
 function bool UpdateEquipItemInPlace(ItemWindowHandle hItemWnd, ItemInfo a_Info)
 {
 	local int Index;
+	local ItemInfo SelectedInfo;
 
 	Index = hItemWnd.FindItemWithServerID(a_Info.ServerID);
-	if( Index != -1 )
+	if( Index == -1 )
 	{
-		hItemWnd.SetItem(Index, a_Info);
-		return True;
+		return False;
 	}
-	return False;
+
+	/*
+	 * SetItem() invalidates the native selection used by the tooltip.
+	 * Event 2610 is already handled by ToolTip.uc, so keep the selected
+	 * item intact while its durability is being updated.
+	 */
+	if( hItemWnd.GetSelectedItem(SelectedInfo) )
+	{
+		if( SelectedInfo.ServerID == a_Info.ServerID &&
+			SelectedInfo.CurrentDurability != a_Info.CurrentDurability )
+		{
+			return True;
+		}
+	}
+
+	hItemWnd.SetItem(Index, a_Info);
+	return True;
 }
 
 function EquipItemUpdate(ItemInfo a_Info)
