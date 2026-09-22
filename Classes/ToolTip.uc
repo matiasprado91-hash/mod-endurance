@@ -15,9 +15,6 @@ var bool BoolSelect;
 var bool b_ShowID;
 var bool isadmin;
 
-var int EnduranceDrawListIndex;
-var int EnduranceServerID;
-
 
 const MACROCOMMAND_MAX_COUNT= 12;
 const TOOLTIP_LINE_HGAP= 4;
@@ -31,8 +28,6 @@ function OnLoad ()
 
     isadmin = False;
     BoolSelect = True;
-    EnduranceDrawListIndex = -1;
-    EnduranceServerID = 0;
 
 }
 
@@ -1556,20 +1551,8 @@ function addTooltipID (ItemInfo item)
 {
 	AddCrossLine();
     AddTooltipColorText("Endurance : " $ string(item.CurrentDurability) $ " || L2Evolution", getAColor(176, 155, 121, 255), true, true,, "", 2);
-    EnduranceDrawListIndex = zzDeobfuscated4592.DrawList.Length - 1;
 }
 
-
-
-function UpdateEndurance(int ServerID, int CurrentDurability)
-{
-    if( (ServerID != EnduranceServerID) || (EnduranceDrawListIndex < 0) || (EnduranceDrawListIndex >= zzDeobfuscated4592.DrawList.Length) )
-    {
-        return;
-    }
-
-    zzDeobfuscated4592.DrawList[EnduranceDrawListIndex].t_strText = "Endurance : " $ string(CurrentDurability) $ " || L2Evolution";
-}
 
 
 function addSetitemTooltip (ItemInfo item)
