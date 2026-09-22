@@ -9,7 +9,6 @@ import java.util.List;
 
 import ext.mods.extensions.listener.command.OnBypassCommandListener;
 import ext.mods.gameserver.data.xml.ItemData;
-import ext.mods.gameserver.enums.items.ItemState;
 import ext.mods.gameserver.model.actor.Player;
 import ext.mods.gameserver.model.item.instance.ItemInstance;
 import ext.mods.gameserver.network.serverpackets.NpcHtmlMessage;
@@ -154,7 +153,7 @@ public class EnduranceRepairListener implements OnBypassCommandListener
 			}
 			
 			item.setEndurance(EnduranceConfig.MAX_ENDURANCE);
-			item.updateState(player, ItemState.MODIFIED);
+			EnduranceUpdate.send(player, item);
 		}
 		
 		player.sendMessage("Your " + item.getItem().getName() + " has been repaired.");
