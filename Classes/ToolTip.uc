@@ -76,9 +76,13 @@ function OnEvent (int Event_ID, string index)
 function HandleInventoryItemUpdate(string param)
 {
     local ItemInfo Info;
+    local string DebugText;
 
     ParamToItemInfo(param, Info);
     UpdateEnduranceCache(Info);
+
+    DebugText = "ENDURANCE_2610 ServerID="$string(Info.ServerID)$" CurrentDurability="$string(Info.CurrentDurability)$" LastServerID="$string(LastTooltipServerID)$" LastTooltipOpen="$string(LastTooltipIsItem);
+    AddSystemMessageString(DebugText);
 
     if (!LastTooltipIsItem)
     {
@@ -87,70 +91,19 @@ function HandleInventoryItemUpdate(string param)
 
     if (Info.ServerID != LastTooltipServerID)
     {
+        AddSystemMessageString("ENDURANCE_2610 MISMATCH");
         return;
     }
 
     if (LastTooltipRequestParam == "")
     {
+        AddSystemMessageString("ENDURANCE_2610 NO_REQUEST");
         return;
     }
 
-    /*
-     * ReturnTooltipInfo() does not rebuild an already displayed tooltip.
-     * Re-run the original item tooltip request instead. The cached
-     * Endurance value is applied by ReturnTooltip_NTT_ITEM_FARIS()
-     * before the tooltip is rendered again.
-     */
+    AddSystemMessageString("ENDURANCE_2610 REFRESH");
+
     HandleRequestTooltipInfo(LastTooltipRequestParam);
-}
-
-function UpdateEnduranceCache(ItemInfo Info)
-{
-	local int Index;
-
-	if( Info.ServerID <= 0 )
-	{
-		return;
-	}
-
-	Index = FindEnduranceCacheIndex(Info.ServerID);
-	if( Index == -1 )
-	{
-		EnduranceServerIDs.Length = EnduranceServerIDs.Length + 1;
-		EnduranceValues.Length = EnduranceValues.Length + 1;
-		Index = EnduranceServerIDs.Length - 1;
-		EnduranceServerIDs[Index] = Info.ServerID;
-	}
-
-	EnduranceValues[Index] = Info.CurrentDurability;
-}
-
-function int FindEnduranceCacheIndex(int ServerID)
-{
-	local int i;
-
-	i = 0;
-	while( i < EnduranceServerIDs.Length )
-	{
-		if( EnduranceServerIDs[i] == ServerID )
-		{
-			return i;
-		}
-		++i;
-	}
-
-	return -1;
-}
-
-function ApplyEnduranceCache(out ItemInfo Info)
-{
-	local int Index;
-
-	Index = FindEnduranceCacheIndex(Info.ServerID);
-	if( Index != -1 )
-	{
-		Info.CurrentDurability = EnduranceValues[Index];
-	}
 }
 
 function Setadminboolean(bool NewValue)
