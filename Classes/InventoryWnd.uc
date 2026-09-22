@@ -1275,8 +1275,16 @@ function EquipItemUpdate(ItemInfo a_Info)
 	}
 	if( None != hItemWnd )
 	{
-		hItemWnd.Clear();
-		hItemWnd.AddItem(a_Info);
+		Index = hItemWnd.FindItemWithServerID(a_Info.ServerID);
+		if( Index != -1 )
+		{
+			hItemWnd.SetItem(Index, a_Info);
+		}
+		else
+		{
+			hItemWnd.Clear();
+			hItemWnd.AddItem(a_Info);
+		}
 	}
 }
 
