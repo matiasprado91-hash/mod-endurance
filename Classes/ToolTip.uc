@@ -82,7 +82,7 @@ function HandleInventoryItemUpdate(string param)
     UpdateEnduranceCache(Info);
 
     DebugText = "ENDURANCE_2610 ServerID="$string(Info.ServerID)$" CurrentDurability="$string(Info.CurrentDurability)$" LastServerID="$string(LastTooltipServerID)$" LastTooltipOpen="$string(LastTooltipIsItem);
-    AddSystemMessageString(DebugText);
+    Log(DebugText);
 
     if (!LastTooltipIsItem)
     {
@@ -91,17 +91,17 @@ function HandleInventoryItemUpdate(string param)
 
     if (Info.ServerID != LastTooltipServerID)
     {
-        AddSystemMessageString("ENDURANCE_2610 MISMATCH");
+        Log("ENDURANCE_2610 MISMATCH");
         return;
     }
 
     if (LastTooltipRequestParam == "")
     {
-        AddSystemMessageString("ENDURANCE_2610 NO_REQUEST");
+        Log("ENDURANCE_2610 NO_REQUEST");
         return;
     }
 
-    AddSystemMessageString("ENDURANCE_2610 REFRESH");
+    Log("ENDURANCE_2610 REFRESH");
 
     HandleRequestTooltipInfo(LastTooltipRequestParam);
 }
