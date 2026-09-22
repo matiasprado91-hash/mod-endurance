@@ -1078,6 +1078,7 @@ function EquipItemUpdate(ItemInfo a_Info)
 	local ItemInfo RHand, LHand, Legs, Gloves, Feet, Hair2;
 
 	local int i;
+	local int Index;
     
 	if( GetOptionBool("Lotus_Custom", "AutoEquipSet") )
 	{
