@@ -18,6 +18,10 @@ var array<int> m_EnduranceObjectIDs;
 var array<int> m_EnduranceValues;
 var string m_LastTooltipParam;
 
+var int LastTooltipServerID;
+var string LastTooltipRequestParam;
+var int LastTooltipRefreshServerID;
+var int LastTooltipRefreshDurability;
 
 const MACROCOMMAND_MAX_COUNT= 12;
 const TOOLTIP_LINE_HGAP= 4;
@@ -28,10 +32,14 @@ function OnLoad ()
 {
     RegisterEvent(2920);
     RegisterEvent(580);
+    RegisterEvent(2610);
 
     isadmin = False;
     BoolSelect = True;
 
+    LastTooltipServerID = -1;
+    LastTooltipRefreshServerID = -1;
+    LastTooltipRefreshDurability = -1;
 }
 
 
@@ -51,16 +59,13 @@ function OnEvent (int Event_ID, string index)
             HandleRequestTooltipInfo(index);
             break;
 
+        case 2610:
+            HandleInventoryItemUpdate(index);
+            break;
 
         default:
             break;
     }
-}
-
-
-function Setadminboolean(bool NewValue)
-{
-	isadmin = NewValue;
 }
 
 function HandleEnduranceUpdate(string param)
@@ -107,6 +112,34 @@ function int GetCachedEndurance(int ObjectID, int Fallback)
 	}
 
 	return Fallback;
+}
+
+
+function HandleInventoryItemUpdate(string param)
+{
+    local ItemInfo Info;
+
+    ParamToItemInfo(param, Info);
+
+    if( LastTooltipServerID != Info.ServerID )
+    {
+        return;
+    }
+
+    if( LastTooltipRequestParam == "" )
+    {
+        return;
+    }
+
+    LastTooltipRefreshServerID = Info.ServerID;
+    LastTooltipRefreshDurability = Info.CurrentDurability;
+
+    ExecuteEvent(2920, LastTooltipRequestParam);
+}
+
+function Setadminboolean(bool NewValue)
+{
+	isadmin = NewValue;
 }
 
 
@@ -239,6 +272,7 @@ function ClearTooltip ()
 	zzDeobfuscated4592.MinimumWidth = 0;
 	zzDeobfuscated4592.DrawList.Remove (0,zzDeobfuscated4592.DrawList.Length);
 
+    LastTooltipServerID = -1;
 	}
 
 function StartItem ()
@@ -447,7 +481,8 @@ function int getMaxWidth ()
 {
 	local int tmp;
 
-	if ( (textWidth2 >= 80 + textWidth + 20) )	{
+	if ( (textWidth2 >= 80 + textWidth + 20) )
+	{
 		tmp = (textWidth2 + 80);
 	} 
 
@@ -846,7 +881,8 @@ function AddTooltipItemCountfaris (ItemInfo item, optional int offsetX, optional
 		zzDeobfuscated2336.eType = DIT_TEXT;
 		zzDeobfuscated2336.t_bDrawOneLine = True;
 		zzDeobfuscated2336.t_strText = (" ("$MakeCostString(string(item.ItemNum))$")");
-		zzDeobfuscated2336.nOffSetX = (zzDeobfuscated2336.nOffSetX + offsetX); 		zzDeobfuscated2336.nOffSetY = (zzDeobfuscated2336.nOffSetY + offsetY);
+		zzDeobfuscated2336.nOffSetX = (zzDeobfuscated2336.nOffSetX + offsetX); 
+		zzDeobfuscated2336.nOffSetY = (zzDeobfuscated2336.nOffSetY + offsetY);
 		zzDeobfuscated2336.t_color.R = 176;
 		zzDeobfuscated2336.t_color.G = 155;
 		zzDeobfuscated2336.t_color.B = 121;
@@ -1165,11 +1201,19 @@ function ReturnTooltip_NTT_ITEM_FARIS (string param, string TooltipType, EToolti
 	if ( eSourceType == 1 )
 	{
 		ParamToItemInfo(param,item);
+        LastTooltipRequestParam = param;
+        LastTooltipServerID = item.ServerID;
 		if ( isShortcut )
 		{
 			FindItemByServerID(item.ServerID,item);
 		}
 
+        if( LastTooltipRefreshServerID == item.ServerID )
+        {
+            item.CurrentDurability = LastTooltipRefreshDurability;
+            LastTooltipRefreshServerID = -1;
+            LastTooltipRefreshDurability = -1;
+        }
 
 			
 
@@ -1246,6 +1290,7 @@ function ReturnTooltip_NTT_ITEM_FARIS (string param, string TooltipType, EToolti
 
 			{
 				AddTooltipItemOptionfaris(322, (strAdenaComma$" "$GetSystemString(469)), True, True, False, , , , AdenaColor);
+
 			}
 			if ( IsStackableItem(item.ConsumeType) && (item.ItemNum > 1) )
 			{
@@ -1647,7 +1692,8 @@ function addSetitemTooltip (ItemInfo item)
 						zzDeobfuscated2336.u_strTexture = "L2UI_CH3.Tooltip.lifeBG";
 						EndItem();
 						StartItem();
-						zzDeobfuscated2336.eType = DIT_TEXTURE;						zzDeobfuscated2336.nOffSetX = -17;
+						zzDeobfuscated2336.eType = DIT_TEXTURE;
+						zzDeobfuscated2336.nOffSetX = -17;
 						zzDeobfuscated2336.nOffSetY = 5;
 						zzDeobfuscated2336.t_bDrawOneLine = True;
 						zzDeobfuscated2336.u_nTextureWidth = 16;
@@ -1946,12 +1992,6 @@ function AddTooltipItemDurability (ItemInfo item)
 
 
 
-function AddTooltipItemOption (int TitleID, string Content, bool bTitle, bool bContent, bool isFirstLine)
-{
-	AddTooltipItemOptionfaris(TitleID, Content, bTitle, bContent, isFirstLine);
-}
-
-
 function AddTooltipItemOptionfaris (int TitleID, string Content, bool bTitle, bool bContent, bool isFirstLine, optional int offsetX, optional int offsetY, optional Color titleTextColor, optional Color contentTextColor)
 {
 	if ( bTitle )
@@ -2152,4 +2192,1173 @@ function bool isBuffSellable(ItemInfo Item)
 	_temp = class'UIDATA_SKILL'.static.GetMpConsume(_skillId, Item.Enchanted);
 	if ( _temp > 0 )
 		AddTooltipItemOption(320, String(_temp), True, True, False);
+	
+	//Description
+	if ( Len(_description) > 0 )
+	{
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.nOffSetY = 6;
+		zzDeobfuscated2336.bLineBreak = True;
+		zzDeobfuscated2336.t_color.R = 178;
+		zzDeobfuscated2336.t_color.G = 190;
+		zzDeobfuscated2336.t_color.B = 207;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_strText = _description;
+		EndItem();	
+	}	
+	
+	if ( Item.Price > 0 )
+	{
+		_adenaColor = GetNumericColor(MakeCostString(String(Item.Price)));
+				
+		//Price: For each
+		AddTooltipItemOption2(322, 468, True, True, False);
+		SetTooltipItemColor(_adenaColor.R, _adenaColor.G, _adenaColor.B, 0);
+				
+		//"xxx,xxx,xxx "
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.nOffSetY = 6;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_color = _adenaColor;
+		zzDeobfuscated2336.t_strText = " "$MakeCostString(String(Item.Price))$" Adena";
+		EndItem();
+	}
+	zzDeobfuscated4592.MinimumWidth = 200;
+	ReturnTooltipInfo(zzDeobfuscated4592);
+	return True;
+}
+
+
+
+
+
+
+
+function ReturnTooltip_NTT_SKILL_FARIS (string param, ETooltipSourceType eSourceType)
+{
+	local ItemInfo item;
+	local EItemParamType EItemParamType;
+	local int nTmp;
+	local int SkillLevel;
+	local SkillInfo SkillInfo;
+
+	if ( eSourceType == 1 )
+	{
+		ParseString(param,"Name",item.Name);
+		ParseString(param,"AdditionalName",item.AdditionalName);
+		ParseString(param,"Description",item.Description);
+		ParseInt(param,"ClassID",item.ClassID);
+		ParseInt(param,"Level",item.Level);
+		GetSkillInfo(item.ClassID,item.Level,SkillInfo);
+		item.IconName = Class'UIDATA_SKILL'.static.GetIconName(item.ClassID,item.Level);
+		EItemParamType = EItemParamType(item.ItemType);
+		SkillLevel = item.Level;
+		zzDeobfuscated4592.MinimumWidth = 250;
+		addItemIcon(item,"");
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.nOffSetX = 5;
+		zzDeobfuscated2336.t_strText = item.Name;
+		EndItem();
+		if ( (Len(item.AdditionalName) > 0) )
+		{
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			zzDeobfuscated2336.nOffSetX = 5;
+			zzDeobfuscated2336.t_bDrawOneLine = True;
+			zzDeobfuscated2336.t_color.R = 255;
+			zzDeobfuscated2336.t_color.G = 217;
+			zzDeobfuscated2336.t_color.B = 105;
+			zzDeobfuscated2336.t_color.A = 255;
+			zzDeobfuscated2336.t_strText = item.AdditionalName;
+			SkillLevel = Class'UIDATA_SKILL'.static.GetEnchantSkillLevel(item.ClassID,item.Level);
+			EndItem();
+		}
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_strText = " ";
+		EndItem();
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_color.R = 163;
+		zzDeobfuscated2336.t_color.G = 163;
+		zzDeobfuscated2336.t_color.B = 163;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_ID = 88;
+		EndItem();
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_color.R = 176;
+		zzDeobfuscated2336.t_color.G = 155;
+		zzDeobfuscated2336.t_color.B = 121;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_strText = (" "$string(SkillLevel));
+		EndItem();
+		AddTooltipItemBlank(1);
+		AddTooltipColorText(Class'UIDATA_SKILL'.static.GetOperateType(item.ClassID,item.Level),GetColortool(176,155,121,255),True,True,False,"",38, -19);
+		nTmp = Class'UIDATA_SKILL'.static.GetHpConsume(item.ClassID,item.Level);
+		if ( nTmp > 0 )
+		{
+			AddTooltipItemOptionfaris(1195,string(nTmp),True,True,False);
+		}
+		nTmp = Class'UIDATA_SKILL'.static.GetMpConsume(item.ClassID,item.Level);
+		if ( nTmp > 0 )
+		{
+			AddTooltipItemOptionfaris(320,string(nTmp),True,True,False,0,0,xxgetInstanceL2Util().BrightWhite,xxgetInstanceL2Util().ColorYellow);
+		}
+		nTmp = Class'UIDATA_SKILL'.static.GetCastRange(item.ClassID,item.Level);
+		if ( nTmp >= 0 )
+		{
+			AddTooltipItemOptionfaris(321,string(nTmp),True,True,False);
+		}
+		if ( (Len(item.Description) > 0) )
+		{
+			AddTooltipItemBlank(4);
+			AddCrossLine();
+			AddTooltipItemBlank(4);
+			AddTooltipColorText(item.Description,GetColortool(178,190,207,255),True,False);
+
+			AddTooltipItemBlank(4);
+		}
+		if ( (Len(item.AdditionalName) > 0) )
+		{
+			AddCrossLine();
+			AddTooltipColorText((GetSystemString(1553)$" : "),GetColortool(163,163,163,255),True,False);
+			AddTooltipColorText(item.AdditionalName,GetColortool(255,217,105,255),False,True);
+			AddTooltipItemBlank(2);
+			AddTooltipColorText(SkillInfo.EnchantDesc,GetColortool(178,190,207,255),True,False);
+		}
+		addTooltipID(item);
+	} 
+
+	else 
+
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+
+
+
+
+function ReturnTooltip_NTT_ABNORMALSTATUS (string param, ETooltipSourceType eSourceType)
+{
+	local ItemInfo item;
+	local SkillInfo SkillInfo;
+	local int ShowLevel;
+	local EItemParamType EItemParamType;
+
+	if ( eSourceType == 1 )
+	{
+		ParseInt(param,"ClassID",item.ClassID);
+		ParseString(param,"Name",item.Name);
+		ParseString(param,"AdditionalName",item.AdditionalName);
+		ParseString(param,"Description",item.Description);
+		ParseInt(param,"Level",item.Level);
+		ParseInt(param,"Reserved",item.Reserved);
+		EItemParamType = EItemParamType(item.ItemType);
+		GetSkillInfo(item.ClassID,item.Level,SkillInfo);
+		item.IconName = Class'UIDATA_SKILL'.static.GetIconName(item.ClassID,item.Level);
+		zzDeobfuscated4592.MinimumWidth = 250;
+		addItemIcon(item,"");
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.nOffSetX = 5;
+		zzDeobfuscated2336.t_strText = item.Name;
+		EndItem();
+		if ( (Len(item.AdditionalName) > 0) )
+		{
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			zzDeobfuscated2336.nOffSetX = 5;
+			zzDeobfuscated2336.t_bDrawOneLine = True;
+			zzDeobfuscated2336.t_color.R = 255;
+			zzDeobfuscated2336.t_color.G = 217;
+			zzDeobfuscated2336.t_color.B = 105;
+			zzDeobfuscated2336.t_color.A = 255;
+			zzDeobfuscated2336.t_strText = item.AdditionalName;
+			EndItem();
+			item.Level = Class'UIDATA_SKILL'.static.GetEnchantSkillLevel(item.ClassID,item.Level);
+		}
+		ShowLevel = item.Level;
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_strText = " ";
+		EndItem();
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_color.R = 163;
+		zzDeobfuscated2336.t_color.G = 163;
+		zzDeobfuscated2336.t_color.B = 163;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_ID = 88;
+		EndItem();
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_color.R = 176;
+		zzDeobfuscated2336.t_color.G = 155;
+		zzDeobfuscated2336.t_color.B = 121;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_strText = (" "$string(ShowLevel));
+		EndItem();
+		if ( (item.Reserved >= 0) && !(IsDebuff(item.ClassID,item.Level)) )
+		{
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			zzDeobfuscated2336.bLineBreak = True;
+			zzDeobfuscated2336.t_bDrawOneLine = True;
+			zzDeobfuscated2336.nOffSetX = 39;
+			zzDeobfuscated2336.nOffSetY = -15;
+			zzDeobfuscated2336.t_color.R = 163;
+			zzDeobfuscated2336.t_color.G = 163;
+			zzDeobfuscated2336.t_color.B = 163;
+			zzDeobfuscated2336.t_color.A = 255;
+			zzDeobfuscated2336.t_ID = 1199;
+			EndItem();
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			zzDeobfuscated2336.t_bDrawOneLine = True;
+			zzDeobfuscated2336.nOffSetY = -15;
+			zzDeobfuscated2336.t_color.R = 163;
+			zzDeobfuscated2336.t_color.G = 163;
+			zzDeobfuscated2336.t_color.B = 163;
+			zzDeobfuscated2336.t_color.A = 255;
+			zzDeobfuscated2336.t_strText = " : ";
+			EndItem();
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			zzDeobfuscated2336.t_bDrawOneLine = True;
+			zzDeobfuscated2336.nOffSetY = -15;
+			zzDeobfuscated2336.t_color.R = 255;
+			zzDeobfuscated2336.t_color.G = 221;
+			zzDeobfuscated2336.t_color.B = 102;
+			zzDeobfuscated2336.t_color.A = 255;
+			zzDeobfuscated2336.t_strText = MakeBuffTimeStr(item.Reserved);
+			ParamAdd(zzDeobfuscated2336.Condition,"Type","RemainTime");
+			EndItem();
+		}
+		if ( (Len(item.Description) > 0) )
+		{
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			zzDeobfuscated2336.nOffSetY = 4;
+			zzDeobfuscated2336.bLineBreak = True;
+			zzDeobfuscated2336.t_color.R = 178;
+			zzDeobfuscated2336.t_color.G = 190;
+			zzDeobfuscated2336.t_color.B = 207;
+			zzDeobfuscated2336.t_color.A = 255;
+			zzDeobfuscated2336.t_strText = item.Description;
+  
+			EndItem();
+		}
+		if ( (Len(item.AdditionalName) > 0) )
+		{
+			AddCrossLine();
+			AddTooltipColorText((GetSystemString(1553)$" : "),GetColortool(163,163,163,255),True,False);
+			AddTooltipColorText(item.AdditionalName,GetColortool(255,217,105,255),False,True);
+			AddTooltipItemBlank(2);
+			AddTooltipColorText(SkillInfo.EnchantDesc,GetColortool(178,190,207,255),True,False);
+		}
+		addTooltipID(item);
+	} 
+
+	else 
+
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+
+
+function ReturnTooltip_NTT_NORMALITEM (string index, ETooltipSourceType eSourceType)
+{
+	local ItemInfo item;
+
+	if ( eSourceType == 1 )
+	{
+		ParseString(index,"Name",item.Name);
+		ParseString(index,"Description",item.Description);
+		ParseString(index,"AdditionalName",item.AdditionalName);
+		ParseInt(index,"CrystalType",item.CrystalType);
+		AddTooltipItemNamefaris(item.Name,item,1);
+		AddTooltipItemGradefaris(item);
+		if ( Len(item.Description) > 0 )
+		{
+			zzDeobfuscated4592.MinimumWidth = 250;
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			zzDeobfuscated2336.nOffSetY = 4;
+			zzDeobfuscated2336.bLineBreak = True;
+			zzDeobfuscated2336.t_color.R = 178;
+			zzDeobfuscated2336.t_color.G = 190;
+			zzDeobfuscated2336.t_color.B = 207;
+			zzDeobfuscated2336.t_color.A = 255;
+			zzDeobfuscated2336.t_strText = item.Description;
+			EndItem();
+		}
+	} 
+	else 
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+
+function ReturnTooltip_NTT_RECIPE (string param, ETooltipSourceType eSourceType, bool bShowPrice)
+{
+	local ItemInfo item;
+	local string strAdena;
+	local string strAdenaComma;
+	local Color AdenaColor;
+
+	if ( eSourceType == 1 )
+	{
+		ParseString(param,"Name",item.Name);
+		ParseString(param,"Description",item.Description);
+		ParseString(param,"AdditionalName",item.AdditionalName);
+		ParseInt(param,"CrystalType",item.CrystalType);
+		ParseInt(param,"Weight",item.Weight);
+		ParseInt(param,"Price",item.Price);
+		AddTooltipItemNamefaris(item.Name,item,1);
+		AddTooltipItemGradefaris(item);
+		if ( bShowPrice )
+		{
+			strAdena = string(item.Price);
+			strAdenaComma = MakeCostString(strAdena);
+			AdenaColor = GetNumericColor(strAdenaComma);
+			AddTooltipItemOptionfaris(641,(strAdenaComma$" "),True,True,False);
+			SetTooltipItemColor(AdenaColor.R,AdenaColor.G,AdenaColor.B,0);
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			zzDeobfuscated2336.nOffSetY = 6;
+			zzDeobfuscated2336.t_bDrawOneLine = True;
+			zzDeobfuscated2336.t_color = AdenaColor;
+			zzDeobfuscated2336.t_ID = 469;
+			EndItem();
+			if ( strAdena != "" )
+			{
+				AddTooltipItemOptionfaris(0,(("("$ConvertNumToText(strAdena))$")"),False,True,False);
+				SetTooltipItemColor(AdenaColor.R,AdenaColor.G,AdenaColor.B,0);
+			}
+		}
+		AddTooltipItemOptionfaris(52,string(item.Weight),True,True,False);
+		if ( (Len(item.Description) > 0) )
+		{
+			zzDeobfuscated4592.MinimumWidth = 250;
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			zzDeobfuscated2336.nOffSetY = 6;
+			zzDeobfuscated2336.bLineBreak = True;
+			zzDeobfuscated2336.t_color.R = 178;
+			zzDeobfuscated2336.t_color.G = 190;
+			zzDeobfuscated2336.t_color.B = 207;
+			zzDeobfuscated2336.t_color.A = 255;
+			zzDeobfuscated2336.t_strText = item.Description;
+			EndItem();
+		}
+	} 
+	else 
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+
+
+
+
+function ReturnTooltip_NTT_SHORTCUT(string param, ETooltipSourceType eSourceType)
+{
+	local ItemInfo item;
+	local EItemParamType EItemParamType;
+	local EShortCutItemType eShortCutType;
+	local string ItemName;
+	local int shortcutID;
+
+    // End:0x8A8
+	if( eSourceType == 1 )
+	{
+        // End:0x1C2
+		if( BoolSelect )
+		{
+			ParseInt(param, "ItemSubType", item.ItemSubType);
+			ParseString(param, "Name", item.Name);
+			ParseInt(param, "RefineryOp1", item.RefineryOp1);
+			ParseInt(param, "RefineryOp2", item.RefineryOp2);
+			eShortCutType = EShortCutItemType(item.ItemSubType);
+			ItemName = Class'UIDATA_ITEM'.static.GetRefineryItemName(item.Name, item.RefineryOp1, item.RefineryOp2);
+			switch(eShortCutType)
+			{
+                // End:0x107
+				case EShortCutItemType(1):
+					ReturnTooltip_NTT_ITEM_FARIS(param, "Inventory", eSourceType, True);
+                    // End:0x1A1
+					break;
+                // End:0x11F
+				case EShortCutItemType(3):
+					ReturnTooltip_NTT_ACTION(param, eSourceType);
+                    // End:0x1A1
+					break;
+                // End:0x137
+				case EShortCutItemType(2):
+					ReturnTooltip_NTT_SKILL_FARIS(param, eSourceType);
+                    // End:0x1A1
+					break;
+                // End:0x150
+				case EShortCutItemType(4):
+					ReturnTooltip_NTT_MACRO(param, eSourceType, True);
+                    // End:0x1A1
+					break;
+                // End:0x19B
+				case EShortCutItemType(5):
+					zzDeobfuscated4592.MinimumWidth = 250;
+					StartItem();
+					zzDeobfuscated2336.eType = DIT_TEXT;
+					zzDeobfuscated2336.t_bDrawOneLine = True;
+					zzDeobfuscated2336.t_strText = ItemName;
+					EndItem();
+                    // End:0x1A1
+					break;
+                // End:0xFFFF
+				default:
+                    // End:0x1A1
+					break;
+					break;
+			}
+			ParseInt(param, "ShortcutID", shortcutID);
+			return;            
+		}
+		else
+		{
+			ParseString(param, "Name", item.Name);
+			ParseString(param, "AdditionalName", item.AdditionalName);
+			ParseInt(param, "ClassID", item.ClassID);
+			ParseInt(param, "Level", item.Level);
+			ParseInt(param, "Reserved", item.Reserved);
+			ParseInt(param, "Enchanted", item.Enchanted);
+			ParseInt(param, "ItemType", item.ItemType);
+			ParseInt(param, "ItemSubType", item.ItemSubType);
+			ParseInt(param, "CrystalType", item.CrystalType);
+			ParseInt(param, "ConsumeType", item.ConsumeType);
+			ParseInt(param, "RefineryOp1", item.RefineryOp1);
+			ParseInt(param, "RefineryOp2", item.RefineryOp2);
+			ParseInt(param, "ItemNum", item.ItemNum);
+			ParseInt(param, "MpConsume", item.MpConsume);
+			eShortCutType = EShortCutItemType(item.ItemSubType);
+			EItemParamType = EItemParamType(item.ItemType);
+			ItemName = Class'UIDATA_ITEM'.static.GetRefineryItemName(item.Name, item.RefineryOp1, item.RefineryOp2);
+			switch(eShortCutType)
+			{
+                // End:0x41F
+				case EShortCutItemType(1):
+					AddTooltipItemEnchantfaris(item,, 3);
+					AddTooltipItemNamefaris(ItemName, item, 1, 3);
+					AddTooltipItemGradefaris(item);
+					AddTooltipItemCountfaris(item);
+                    // End:0x8A5
+					break;
+                // End:0x73A
+				case EShortCutItemType(2):
+					StartItem();
+					zzDeobfuscated2336.eType = DIT_TEXT;
+					zzDeobfuscated2336.t_bDrawOneLine = True;
+					zzDeobfuscated2336.t_strText = ItemName;
+					EndItem();
+                    // End:0x52E
+					if( Len(item.AdditionalName) > 0 )
+					{
+						StartItem();
+						zzDeobfuscated2336.eType = DIT_TEXT;
+						zzDeobfuscated2336.nOffSetX = 5;
+						zzDeobfuscated2336.t_bDrawOneLine = True;
+						zzDeobfuscated2336.t_color.R = byte(255);
+						zzDeobfuscated2336.t_color.G = 217;
+						zzDeobfuscated2336.t_color.B = 105;
+						zzDeobfuscated2336.t_color.A = byte(255);
+						zzDeobfuscated2336.t_strText = item.AdditionalName;
+						item.Level = Class'UIDATA_SKILL'.static.GetEnchantSkillLevel(item.ClassID, item.Level);
+						EndItem();
+					}
+					StartItem();
+					zzDeobfuscated2336.eType = DIT_TEXT;
+					zzDeobfuscated2336.t_bDrawOneLine = True;
+					zzDeobfuscated2336.t_strText = " ";
+					EndItem();
+					StartItem();
+					zzDeobfuscated2336.eType = DIT_TEXT;
+					zzDeobfuscated2336.t_bDrawOneLine = True;
+					zzDeobfuscated2336.t_color.R = 163;
+					zzDeobfuscated2336.t_color.G = 163;
+					zzDeobfuscated2336.t_color.B = 163;
+					zzDeobfuscated2336.t_color.A = byte(255);
+					zzDeobfuscated2336.t_ID = 88;
+					EndItem();
+					StartItem();
+					zzDeobfuscated2336.eType = DIT_TEXT;
+					zzDeobfuscated2336.t_bDrawOneLine = True;
+					zzDeobfuscated2336.t_color.R = 176;
+					zzDeobfuscated2336.t_color.G = 155;
+					zzDeobfuscated2336.t_color.B = 121;
+					zzDeobfuscated2336.t_color.A = byte(255);
+					zzDeobfuscated2336.t_strText = " "$string(item.Level);
+					EndItem();
+					StartItem();
+					zzDeobfuscated2336.eType = DIT_TEXT;
+					zzDeobfuscated2336.nOffSetX = -4;
+					zzDeobfuscated2336.bLineBreak = True;
+					zzDeobfuscated2336.t_bDrawOneLine = True;
+					zzDeobfuscated2336.t_strText = " (";
+					EndItem();
+					StartItem();
+					zzDeobfuscated2336.eType = DIT_TEXT;
+					zzDeobfuscated2336.t_bDrawOneLine = True;
+					zzDeobfuscated2336.t_ID = 91;
+					EndItem();
+					StartItem();
+					zzDeobfuscated2336.eType = DIT_TEXT;
+					zzDeobfuscated2336.t_bDrawOneLine = True;
+					zzDeobfuscated2336.t_strText = (":"$string(item.MpConsume))$")";
+					EndItem();
+                    // End:0x8A5
+					break;
+                // End:0x85C
+				case EShortCutItemType(3):
+					StartItem();
+					zzDeobfuscated2336.eType = DIT_TEXT;
+					zzDeobfuscated2336.t_bDrawOneLine = True;
+					zzDeobfuscated2336.nOffSetX = 5;
+					zzDeobfuscated2336.nOffSetY = 0;
+					zzDeobfuscated2336.t_strText = item.Name;
+					EndItem();
+					AddTooltipItemBlank(4);
+                    // End:0x859
+					if( Len(item.Description) > 0 )
+					{
+						zzDeobfuscated4592.MinimumWidth = 250;
+						StartItem();
+						zzDeobfuscated2336.eType = DIT_TEXT;
+						zzDeobfuscated2336.nOffSetY = 4;
+						zzDeobfuscated2336.t_bDrawOneLine = False;
+						zzDeobfuscated2336.bLineBreak = True;
+						zzDeobfuscated2336.t_color.R = 178;
+						zzDeobfuscated2336.t_color.G = 190;
+						zzDeobfuscated2336.t_color.B = 207;
+						zzDeobfuscated2336.t_color.A = byte(255);
+						zzDeobfuscated2336.t_strText = item.Description;
+						EndItem();
+					}
+                    // End:0x8A5
+					break;
+                // End:0x861
+				case EShortCutItemType(4):
+                // End:0x89F
+				case EShortCutItemType(5):
+					StartItem();
+					zzDeobfuscated2336.eType = DIT_TEXT;
+					zzDeobfuscated2336.t_bDrawOneLine = True;
+					zzDeobfuscated2336.t_strText = ItemName;
+					EndItem();
+                    // End:0x8A5
+					break;
+                // End:0xFFFF
+				default:
+                    // End:0x8A5
+					break;
+					break;
+			}
+		}        
+	}
+	else
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+	return;
+}
+
+
+
+
+
+
+function ReturnTooltip_NTT_MACRO (string param, ETooltipSourceType eSourceType, optional bool bUseUserMacro)
+{
+	local ItemInfo item;
+	local MacroInfo MacroInfo;
+	local int idx;
+	local array<string> commandArray;
+	local bool bCustomMacro;
+
+	if ( eSourceType == 1 )
+	{
+		ParamToItemInfo(param,item);
+		bCustomMacro = Class'UIDATA_MACRO'.static.GetMacroInfo(item.ClassID,MacroInfo);
+		if ( (MacroInfo.IconTextureName != "") ) 
+			addItemIcon(item,"");
+		zzDeobfuscated4592.MinimumWidth = 250;
+		AddTooltipText(item.Name,False,True,True,5,1);
+		if ( (Len(item.Description) > 0) )
+		{
+			AddTooltipColorText(item.Description,GetColortool(178,190,207,255),True,False);
+		}
+		if ( (item.MacroCommand != "") && !(bUseUserMacro) )
+		{
+    
+			idx = 0;
+			if ( idx < commandArray.Length )
+			{
+				if ( commandArray[idx] != "" )
+				{
+					AddTooltipColorText(commandArray[idx],GetColortool(176,155,121,255),True,True);
+				}
+				idx++;
+        
+			}
+		} 
+		else 
+		{
+			if ( bCustomMacro )
+			{
+				idx = 0;
+				if ( idx < 12 )
+				{
+					if ( MacroInfo.CommandList[idx] != "" )
+					{
+						AddTooltipColorText(MacroInfo.CommandList[idx],GetColortool(176,155,121,255),True,True);
+					}
+					idx++;
+          
+				}
+			}
+		}
+	} 
+	else 
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+
+}
+
+function ReturnTooltip_NTT_RECIPE_MANUFACTURE (string param, ETooltipSourceType eSourceType)
+{
+	local ItemInfo item;
+
+	if ( eSourceType == 1 )
+	{
+		ParseString(param,"Name",item.Name);
+		ParseString(param,"Description",item.Description);
+		ParseString(param,"AdditionalName",item.AdditionalName);
+		ParseInt(param,"Reserved",item.Reserved);
+		ParseInt(param,"CrystalType",item.CrystalType);
+		ParseInt(param,"ItemNum",item.ItemNum);
+		zzDeobfuscated4592.MinimumWidth = 250;
+		AddTooltipItemNamefaris(item.Name,item,1);
+		AddTooltipItemGradefaris(item);
+		AddTooltipItemOptionfaris(736,string(item.Reserved),True,True,False);
+		AddTooltipItemOptionfaris(737,string(item.ItemNum),True,True,False);
+		if ( (Len(item.Description) > 0) )
+		{
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			zzDeobfuscated2336.nOffSetY = 6;
+			zzDeobfuscated2336.bLineBreak = True;
+			zzDeobfuscated2336.t_color.R = 178;
+			zzDeobfuscated2336.t_color.G = 190;
+			zzDeobfuscated2336.t_color.B = 207;
+			zzDeobfuscated2336.t_color.A = 255;
+			zzDeobfuscated2336.t_strText = item.Description;
+			EndItem();
+		}
+	} 
+	else 
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+function ReturnTooltip_NTT_CLANINFO (string index, ETooltipSourceType eSourceType)
+{
+	local LVDataRecord Deobfuscated2965;
+
+	if ( eSourceType == 2 )
+	{
+		ParamToRecord(index,Deobfuscated2965);
+		AddTooltipItemOption(391,GetClassType(int(Deobfuscated2965.LVDataList[2].szData))$" (Double Click to Invite)",True,True,True);
+	} 
+	else 
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+function ReturnTooltip_NTT_PARTYMATCH (string index, ETooltipSourceType eSourceType)
+{
+	local LVDataRecord Deobfuscated2965;
+
+	if ( eSourceType == 2 )
+	{
+		ParamToRecord(index,Deobfuscated2965);
+		AddTooltipItemOption(391,GetClassType(int(Deobfuscated2965.LVDataList[1].szData)),True,True,True);
+	} 
+	else 
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+function ReturnTooltip_NTT_QUESTLIST (string index, ETooltipSourceType eSourceType)
+{
+	local LVDataRecord Deobfuscated2965;
+	local int nTmp;
+
+	if ( eSourceType == 2 )
+	{
+		ParamToRecord(index,Deobfuscated2965);
+		AddTooltipItemOption(1200,Deobfuscated2965.LVDataList[0].szData,True,True,True);
+		switch (Deobfuscated2965.LVDataList[3].nReserved1)
+		{
+			case 0:
+			case 2:
+				nTmp = 861;
+				break;
+			case 1:
+			case 3:
+				nTmp = 862;
+				break;
+			default:
+		}
+		AddTooltipItemOption2(1202,nTmp,True,True,False);
+	} 
+	else 
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+function ReturnTooltip_NTT_RAIDLIST (string index, ETooltipSourceType eSourceType)
+{
+	local LVDataRecord Deobfuscated2965;
+
+	if ( eSourceType == 2 )
+	{
+		ParamToRecord(index,Deobfuscated2965);
+		if ( Len(Deobfuscated2965.szReserved) < 1 )
+		{
+			return;
+		}
+		zzDeobfuscated4592.MinimumWidth = 144;
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.t_bDrawOneLine = False;
+		zzDeobfuscated2336.t_color.R = 178;
+		zzDeobfuscated2336.t_color.G = 190;
+		zzDeobfuscated2336.t_color.B = 207;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_strText = Deobfuscated2965.szReserved;
+		EndItem();
+	} 
+	else 
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+function ReturnTooltip_NTT_QUESTINFO (string index, ETooltipSourceType eSourceType)
+{
+	local LVDataRecord Deobfuscated2965;
+	local int nTmp;
+	local int Width1;
+	local int Width2;
+	local int Height;
+
+	if ( eSourceType == 2 )
+	{
+		ParamToRecord(index,Deobfuscated2965);
+		AddTooltipItemOption(1200,Deobfuscated2965.LVDataList[0].szData,True,True,True);
+		AddTooltipItemOption(1201,Deobfuscated2965.LVDataList[1].szData,True,True,False);
+		GetTextSize(GetSystemString(1200)$" : "$Deobfuscated2965.LVDataList[0].szData,Width1,Height);
+		GetTextSize(GetSystemString(1201)$" : "$Deobfuscated2965.LVDataList[1].szData,Width2,Height);
+		if ( Width2 > Width1 )
+		{
+			Width1 = Width2;
+		}
+		if ( 144 > Width1 )
+		{
+			Width1 = 144;
+		}
+		zzDeobfuscated4592.MinimumWidth = Width1 + 30;
+		AddTooltipItemOption(922,Deobfuscated2965.LVDataList[2].szData,True,True,False);
+		switch (Deobfuscated2965.LVDataList[3].nReserved1)
+		{
+			case 0:
+			case 2:
+				nTmp = 861;
+				break;
+			case 1:
+			case 3:
+				nTmp = 862;
+				break;
+			default:
+		}
+		AddTooltipItemOption2(1202,nTmp,True,True,False);
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.nOffSetY = 6;
+		zzDeobfuscated2336.t_bDrawOneLine = False;
+		zzDeobfuscated2336.bLineBreak = True;
+		zzDeobfuscated2336.t_color.R = 178;
+		zzDeobfuscated2336.t_color.G = 190;
+		zzDeobfuscated2336.t_color.B = 207;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_strText = Deobfuscated2965.szReserved;
+		EndItem();
+	} 
+	else 
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+function ReturnTooltip_NTT_MANOR (string index, string TooltipType, ETooltipSourceType eSourceType)
+{
+	local LVDataRecord Deobfuscated2965;
+	local int idx1;
+	local int idx2;
+	local int idx3;
+
+	if ( eSourceType == 2 )
+	{
+		ParamToRecord(index,Deobfuscated2965);
+		if ( TooltipType == "ManorSeedInfo" )
+		{
+			idx1 = 4;
+			idx2 = 5;
+			idx3 = 6;
+		} 
+		else 
+		{
+			if ( TooltipType == "ManorCropInfo" )
+			{
+				idx1 = 5;
+				idx2 = 6;
+				idx3 = 7;
+			} 
+			else 
+			{
+				if ( TooltipType == "ManorSeedSetting" )
+				{
+					idx1 = 7;
+					idx2 = 8;
+					idx3 = 9;
+				} 
+				else 
+				{
+					if ( TooltipType == "ManorCropSetting" )
+					{
+						idx1 = 9;
+						idx2 = 10;
+						idx3 = 11;
+					} 
+					else 
+					{
+						if ( TooltipType == "ManorDefaultInfo" )
+						{
+							idx1 = 1;
+							idx2 = 4;
+							idx3 = 5;
+						} 
+						else 
+						{
+							if ( TooltipType == "ManorCropSell" )
+							{
+								idx1 = 7;
+								idx2 = 8;
+								idx3 = 9;
+							}
+						}
+					}
+				}
+			}
+		}
+		AddTooltipItemOption(0,Deobfuscated2965.LVDataList[0].szData,False,True,True);
+		AddTooltipItemOption(537,Deobfuscated2965.LVDataList[idx1].szData,True,True,False);
+		AddTooltipItemOption(1134,Deobfuscated2965.LVDataList[idx2].szData,True,True,False);
+		AddTooltipItemOption(1135,Deobfuscated2965.LVDataList[idx3].szData,True,True,False);
+	} 
+	else 
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+
+function AddTooltipItemOption (int TitleID, string Content, bool bTitle, bool bContent, bool IamFirst)
+{
+	if ( bTitle )
+	{
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		if (  !IamFirst )
+		{
+			zzDeobfuscated2336.nOffSetY = 6;
+		}
+		zzDeobfuscated2336.bLineBreak = True;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_color.R = 163;
+		zzDeobfuscated2336.t_color.G = 163;
+		zzDeobfuscated2336.t_color.B = 163;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_ID = TitleID;
+		EndItem();
+	}
+	if ( bContent )
+	{
+		if ( bTitle )
+		{
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			if (  !IamFirst )
+			{
+				zzDeobfuscated2336.nOffSetY = 6;
+			}
+			zzDeobfuscated2336.t_bDrawOneLine = True;
+			zzDeobfuscated2336.t_color.R = 163;
+			zzDeobfuscated2336.t_color.G = 163;
+			zzDeobfuscated2336.t_color.B = 163;
+			zzDeobfuscated2336.t_color.A = 255;
+			zzDeobfuscated2336.t_strText = " : ";
+			EndItem();
+		}
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		if (  !IamFirst )
+		{
+			zzDeobfuscated2336.nOffSetY = 6;
+		}
+		if (  !bTitle )
+		{
+			zzDeobfuscated2336.bLineBreak = True;
+		}
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_color.R = 176;
+		zzDeobfuscated2336.t_color.G = 155;
+		zzDeobfuscated2336.t_color.B = 121;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_strText = Content;
+		EndItem();
+	}
+}
+
+
+function AddTooltipItemOption2 (int TitleID, int ContentID, bool bTitle, bool bContent, bool IamFirst)
+{
+	if ( bTitle )
+	{
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		if ( !(IamFirst) )
+		{
+			zzDeobfuscated2336.nOffSetY = 4;
+		}
+		zzDeobfuscated2336.bLineBreak = True;
+		zzDeobfuscated2336.nOffSetX = 1;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_color.R = 163;
+		zzDeobfuscated2336.t_color.G = 163;
+		zzDeobfuscated2336.t_color.B = 163;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_ID = TitleID;
+		EndItem();
+	}
+	if ( bContent )
+	{
+		if ( bTitle )
+		{
+			StartItem();
+			zzDeobfuscated2336.eType = DIT_TEXT;
+			if ( !(IamFirst) )
+			{
+				zzDeobfuscated2336.nOffSetY = 4;
+			}
+			zzDeobfuscated2336.t_bDrawOneLine = True;
+			zzDeobfuscated2336.t_color.R = 163;
+			zzDeobfuscated2336.t_color.G = 163;
+			zzDeobfuscated2336.t_color.B = 163;
+			zzDeobfuscated2336.t_color.A = 255;
+			zzDeobfuscated2336.t_strText = " : ";
+			EndItem();
+		}
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		if ( !(IamFirst) )
+		{
+			zzDeobfuscated2336.nOffSetY = 4;
+		}
+		if ( !(bTitle) )
+		{
+			zzDeobfuscated2336.bLineBreak = True;
+		}
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_color.R = 176;
+		zzDeobfuscated2336.t_color.G = 155;
+		zzDeobfuscated2336.t_color.B = 121;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_ID = ContentID;
+		EndItem();
+	}
+}
+
+function SetTooltipItemColor (int R, int G, int B, int Deobfuscated1905)
+{
+	local int Deobfuscated1834;
+
+	Deobfuscated1834 = zzDeobfuscated4592.DrawList.Length - 1 - Deobfuscated1905;
+	zzDeobfuscated4592.DrawList[Deobfuscated1834].t_color.R = R;
+	zzDeobfuscated4592.DrawList[Deobfuscated1834].t_color.G = G;
+	zzDeobfuscated4592.DrawList[Deobfuscated1834].t_color.B = B;
+	zzDeobfuscated4592.DrawList[Deobfuscated1834].t_color.A = 255;
+}
+
+function AddTooltipItemBlank (int Height)
+{
+	StartItem();
+	zzDeobfuscated2336.eType = DIT_BLANK;
+	zzDeobfuscated2336.b_nHeight = Height;
+	EndItem();
+}
+
+function AddTooltipItemEnchant (ItemInfo item)
+{
+	local EItemParamType EItemParamType;
+
+	EItemParamType = EItemParamType(item.ItemType);
+	if ( (item.Enchanted > 0) && IsEnchantableItem(EItemParamType) )
+	{
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_color.R = 176;
+		zzDeobfuscated2336.t_color.G = 155;
+		zzDeobfuscated2336.t_color.B = 121;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.t_strText = "+"$string(item.Enchanted)$" ";
+		EndItem();
+	}
+}
+
+function AddTooltipItemNameFaris (string Name, ItemInfo item, int AddTooltipItemName, optional int offsetX, optional int offsetY)
+{
+	StartItem();
+	zzDeobfuscated2336.eType = DIT_TEXT;
+	zzDeobfuscated2336.t_bDrawOneLine = True;
+	zzDeobfuscated2336.t_color = GetItemNameWithoutTag(Name);
+	zzDeobfuscated2336.nOffSetX = (zzDeobfuscated2336.nOffSetX + offsetX);
+	zzDeobfuscated2336.nOffSetY = (zzDeobfuscated2336.nOffSetY + offsetY);
+	zzDeobfuscated2336.t_strText = Name;
+	EndItem();
+  
+	if ( Len(item.AdditionalName) > 0 )
+	{
+		StartItem();
+		zzDeobfuscated2336.eType = DIT_TEXT;
+		zzDeobfuscated2336.t_bDrawOneLine = True;
+		zzDeobfuscated2336.t_color.R = 255;
+		zzDeobfuscated2336.t_color.G = 217;
+		zzDeobfuscated2336.t_color.B = 105;
+		zzDeobfuscated2336.t_color.A = 255;
+		zzDeobfuscated2336.nOffSetX = (zzDeobfuscated2336.nOffSetX + offsetX);
+		zzDeobfuscated2336.nOffSetY = (zzDeobfuscated2336.nOffSetY + offsetY);
+		zzDeobfuscated2336.t_strText = item.AdditionalName;
+		EndItem();
+	}
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function GetRefineryColor (int Quality, out int R, out int G, out int B)
+{
+	switch (Quality)
+	{
+		case 1:
+			R = 187;
+			G = 181;
+			B = 138;
+			break;
+		case 2:
+			R = 132;
+			G = 174;
+			B = 216;
+			break;
+		case 3:
+			R = 193;
+			G = 112;
+			B = 202;
+			break;
+		case 4:
+			R = 225;
+			G = 109;
+			B = 109;
+			break;
+		default:
+			R = 187;
+			G = 181;
+			B = 138;
+			break;
+	}
+}
+
+function ReturnTooltip_NTT_ITEMSKILLINFO (string index, ETooltipSourceType eSourceType)
+{
+	local string Deobfuscated4924;
+	local LVDataRecord Deobfuscated2965;
+
+	if ( eSourceType == 2 )
+	{
+		ParamToRecord(index,Deobfuscated2965);
+		GetINIString("Description",Deobfuscated2965.LVDataList[0].szData,Deobfuscated4924,"ItemSkillGrp.ini");
+		AddTooltipItemOption(0,Deobfuscated4924,False,True,False);
+	} 
+	else 
+	{
+		return;
+	}
+	ReturnTooltipInfo(zzDeobfuscated4592);
+}
+defaultproperties
+{
 }
