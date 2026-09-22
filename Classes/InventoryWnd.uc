@@ -1070,35 +1070,6 @@ function OnClickCheckBox(string a_param)
 
 
 
-function bool UpdateEquipItemInPlace(ItemWindowHandle hItemWnd, ItemInfo a_Info)
-{
-	local int Index;
-	local ItemInfo SelectedInfo;
-
-	Index = hItemWnd.FindItemWithServerID(a_Info.ServerID);
-	if( Index == -1 )
-	{
-		return False;
-	}
-
-	/*
-	 * SetItem() invalidates the native selection used by the tooltip.
-	 * Event 2610 is already handled by ToolTip.uc, so keep the selected
-	 * item intact while its durability is being updated.
-	 */
-	if( hItemWnd.GetSelectedItem(SelectedInfo) )
-	{
-		if( SelectedInfo.ServerID == a_Info.ServerID &&
-			SelectedInfo.CurrentDurability != a_Info.CurrentDurability )
-		{
-			return True;
-		}
-	}
-
-	hItemWnd.SetItem(Index, a_Info);
-	return True;
-}
-
 function EquipItemUpdate(ItemInfo a_Info)
 {
 	local ItemWindowHandle hItemWnd;
@@ -1304,11 +1275,8 @@ function EquipItemUpdate(ItemInfo a_Info)
 	}
 	if( None != hItemWnd )
 	{
-		if( !UpdateEquipItemInPlace(hItemWnd, a_Info) )
-		{
-			hItemWnd.Clear();
-			hItemWnd.AddItem(a_Info);
-		}
+		hItemWnd.Clear();
+		hItemWnd.AddItem(a_Info);
 	}
 }
 
@@ -1603,7 +1571,6 @@ function HandleUpdateItem (string param)
 {
 	local string Type;
 	local ItemInfo Info;
-	local ToolTip tooltipScript;
 
 
 	local int Index;
@@ -1727,21 +1694,6 @@ function HandleUpdateItem (string param)
 					}
 				}
 			}
-		}
-	}
-
-	/*
-	 * The native ItemWindow update above must not replace the selected
-	 * equipped item.
-	 * Rebuild the open tooltip from its original request so the latest
-	 * Endurance value is rendered immediately.
-	 */
-	if( Type == "update" )
-	{
-		tooltipScript = ToolTip(GetScript("ToolTip"));
-		if( tooltipScript != None )
-		{
-			tooltipScript.HandleInventoryItemUpdate(param);
 		}
 	}
 
