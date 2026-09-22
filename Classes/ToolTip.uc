@@ -1206,6 +1206,7 @@ function ReturnTooltip_NTT_ITEM_FARIS (string param, string TooltipType, EToolti
 	local int mAtkValue;
 	local int pAtkEnchant;
 	local int mAtkEnchant;
+	local int EnduranceCacheIndex;
 
 	if ( eSourceType == 1 )
 	{
@@ -1220,6 +1221,12 @@ LastTooltipRequestParam = param;
 		if ( isShortcut )
 		{
 			FindItemByServerID(item.ServerID,item);
+		}
+
+		EnduranceCacheIndex = FindEnduranceCacheIndex(item.ServerID);
+		if ( EnduranceCacheIndex != -1 )
+		{
+			item.CurrentDurability = EnduranceValues[EnduranceCacheIndex];
 		}
 
 			
