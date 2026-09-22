@@ -17,8 +17,8 @@ var bool isadmin;
 
 var int LastTooltipServerID;
 var int LastTooltipDurabilityIndex;
-var int LastTooltipEnduranceIndex;
 var bool LastTooltipIsItem;
+var string LastTooltipRequestParam;
 /*
  * Latest endurance received through event 2610.
  * Keep it outside ItemWindowHandle so SetItem() never has to replace
@@ -43,7 +43,6 @@ function OnLoad ()
 
     LastTooltipServerID = -1;
     LastTooltipDurabilityIndex = -1;
-    LastTooltipEnduranceIndex = -1;
     LastTooltipIsItem = False;
     EnduranceServerIDs.Length = 0;
     EnduranceValues.Length = 0;
@@ -91,69 +90,18 @@ function HandleInventoryItemUpdate(string param)
         return;
     }
 
-    if (LastTooltipEnduranceIndex < 0)
+    if (LastTooltipRequestParam == "")
     {
         return;
     }
 
-    if (LastTooltipEnduranceIndex >= zzDeobfuscated4592.DrawList.Length)
-    {
-        return;
-    }
-
-    zzDeobfuscated4592.DrawList[LastTooltipEnduranceIndex].t_strText =
-        "Endurance : "$string(Info.CurrentDurability)$" || L2Evolution";
-
-    ReturnTooltipInfo(zzDeobfuscated4592);
-}
-
-function UpdateEnduranceCache(ItemInfo Info)
-{
-	local int Index;
-
-	if( Info.ServerID <= 0 )
-	{
-		return;
-	}
-
-	Index = FindEnduranceCacheIndex(Info.ServerID);
-	if( Index == -1 )
-	{
-		EnduranceServerIDs.Length = EnduranceServerIDs.Length + 1;
-		EnduranceValues.Length = EnduranceValues.Length + 1;
-		Index = EnduranceServerIDs.Length - 1;
-		EnduranceServerIDs[Index] = Info.ServerID;
-	}
-
-	EnduranceValues[Index] = Info.CurrentDurability;
-}
-
-function int FindEnduranceCacheIndex(int ServerID)
-{
-	local int i;
-
-	i = 0;
-	while( i < EnduranceServerIDs.Length )
-	{
-		if( EnduranceServerIDs[i] == ServerID )
-		{
-			return i;
-		}
-		++i;
-	}
-
-	return -1;
-}
-
-function ApplyEnduranceCache(out ItemInfo Info)
-{
-	local int Index;
-
-	Index = FindEnduranceCacheIndex(Info.ServerID);
-	if( Index != -1 )
-	{
-		Info.CurrentDurability = EnduranceValues[Index];
-	}
+    /*
+     * ReturnTooltipInfo() does not rebuild an already displayed tooltip.
+     * Re-run the original item tooltip request instead. The cached
+     * Endurance value is applied by ReturnTooltip_NTT_ITEM_FARIS()
+     * before the tooltip is rendered again.
+     */
+    HandleRequestTooltipInfo(LastTooltipRequestParam);
 }
 
 function Setadminboolean(bool NewValue)
@@ -1224,6 +1172,9 @@ function ReturnTooltip_NTT_ITEM_FARIS (string param, string TooltipType, EToolti
 		ParamToItemInfo(param,item);
 		ApplyEnduranceCache(item);
 
+		LastTooltipRequestParam = param;
+
+
 		LastTooltipServerID = item.ServerID;
         LastTooltipIsItem = True;
         LastTooltipDurabilityIndex = -1;
@@ -1663,9 +1614,7 @@ function addItemIconCustom(ItemInfo item, string ForeTexture, int iconWidth, int
 function addTooltipID (ItemInfo item)
 {
 	AddCrossLine();
-    AddTooltipColorText("Endurance : " $ string(item.CurrentDurability) $ " || L2Evolution", getAColor(176, 155, 121, 255), true, true,, "", 2);
-    LastTooltipEnduranceIndex = zzDeobfuscated4592.DrawList.Length - 1;
-}
+    AddTooltipColorText("Endurance : " $ string(item.CurrentDurability) $ " || L2Evolution", getAColor(176, 155, 121, 255), true, true,, "", 2);}
 
 
 
