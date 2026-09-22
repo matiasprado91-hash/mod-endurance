@@ -106,6 +106,55 @@ function HandleInventoryItemUpdate(string param)
     HandleRequestTooltipInfo(LastTooltipRequestParam);
 }
 
+function UpdateEnduranceCache(ItemInfo Info)
+{
+    local int Index;
+
+    if( Info.ServerID <= 0 )
+    {
+        return;
+    }
+
+    Index = FindEnduranceCacheIndex(Info.ServerID);
+    if( Index == -1 )
+    {
+        EnduranceServerIDs.Length = EnduranceServerIDs.Length + 1;
+        EnduranceValues.Length = EnduranceValues.Length + 1;
+        Index = EnduranceServerIDs.Length - 1;
+        EnduranceServerIDs[Index] = Info.ServerID;
+    }
+
+    EnduranceValues[Index] = Info.CurrentDurability;
+}
+
+function int FindEnduranceCacheIndex(int ServerID)
+{
+    local int i;
+
+    i = 0;
+    while( i < EnduranceServerIDs.Length )
+    {
+        if( EnduranceServerIDs[i] == ServerID )
+        {
+            return i;
+        }
+        ++i;
+    }
+
+    return -1;
+}
+
+function ApplyEnduranceCache(out ItemInfo Info)
+{
+    local int Index;
+
+    Index = FindEnduranceCacheIndex(Info.ServerID);
+    if( Index != -1 )
+    {
+        Info.CurrentDurability = EnduranceValues[Index];
+    }
+}
+
 function Setadminboolean(bool NewValue)
 {
 	isadmin = NewValue;
