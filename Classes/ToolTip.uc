@@ -15,10 +15,6 @@ var bool BoolSelect;
 var bool b_ShowID;
 var bool isadmin;
 
-var int LastTooltipServerID;
-var string LastTooltipRequestParam;
-var int LastTooltipRefreshServerID;
-var int LastTooltipRefreshDurability;
 
 const MACROCOMMAND_MAX_COUNT= 12;
 const TOOLTIP_LINE_HGAP= 4;
@@ -29,14 +25,10 @@ function OnLoad ()
 {
     RegisterEvent(2920);
     RegisterEvent(580);
-    RegisterEvent(2610);
 
     isadmin = False;
     BoolSelect = True;
 
-    LastTooltipServerID = -1;
-    LastTooltipRefreshServerID = -1;
-    LastTooltipRefreshDurability = -1;
 }
 
 
@@ -55,36 +47,12 @@ function OnEvent (int Event_ID, string index)
             HandleRequestTooltipInfo(index);
             break;
 
-        case 2610:
-            HandleInventoryItemUpdate(index);
-            break;
 
         default:
             break;
     }
 }
 
-function HandleInventoryItemUpdate(string param)
-{
-    local ItemInfo Info;
-
-    ParamToItemInfo(param, Info);
-
-    if( LastTooltipServerID != Info.ServerID )
-    {
-        return;
-    }
-
-    if( LastTooltipRequestParam == "" )
-    {
-        return;
-    }
-
-    LastTooltipRefreshServerID = Info.ServerID;
-    LastTooltipRefreshDurability = Info.CurrentDurability;
-
-    ExecuteEvent(2920, LastTooltipRequestParam);
-}
 
 function Setadminboolean(bool NewValue)
 {
@@ -221,7 +189,8 @@ function ClearTooltip ()
 	zzDeobfuscated4592.MinimumWidth = 0;
 	zzDeobfuscated4592.DrawList.Remove (0,zzDeobfuscated4592.DrawList.Length);
 
-    LastTooltipServerID = -1;	}
+    LastTooltipServerID = -1;
+	}
 
 function StartItem ()
 {
@@ -1149,19 +1118,11 @@ function ReturnTooltip_NTT_ITEM_FARIS (string param, string TooltipType, EToolti
 	if ( eSourceType == 1 )
 	{
 		ParamToItemInfo(param,item);
-        LastTooltipRequestParam = param;
-        LastTooltipServerID = item.ServerID;
 		if ( isShortcut )
 		{
 			FindItemByServerID(item.ServerID,item);
 		}
 
-        if( LastTooltipRefreshServerID == item.ServerID )
-        {
-            item.CurrentDurability = LastTooltipRefreshDurability;
-            LastTooltipRefreshServerID = -1;
-            LastTooltipRefreshDurability = -1;
-        }
 
 			
 
