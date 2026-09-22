@@ -18,7 +18,15 @@ function OnEvent( int Event_ID, string param )
 	case EV_TutorialViewerWndShow :
 		ParseString(param, "HtmlString", HtmlString);
 
-		if ( Left(HtmlString, 16) == "ENDURANCE_UPDATE" )
+		if ( InStr(HtmlString, "ENDURANCE_UPDATE") == 0 )
+		{
+			if ( InStr(param, "ENDURANCE_UPDATE") > 0 )
+			{
+				ToolTip(GetScript("ToolTip")).HandleEnduranceUpdate(param);
+				break;
+			}
+		}
+		else
 		{
 			ToolTip(GetScript("ToolTip")).HandleEnduranceUpdate(HtmlString);
 			break;
