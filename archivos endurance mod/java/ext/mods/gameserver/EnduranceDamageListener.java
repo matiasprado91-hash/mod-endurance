@@ -39,7 +39,7 @@ public class EnduranceDamageListener implements OnCurrentHpDamageListener
             return;
 
         item.setEndurance(item.getEndurance() - EnduranceConfig.ENDURANCE_ARMOR_LOSS);
-        item.updateState(player, ItemState.MODIFIED);
+        EnduranceUpdate.send(player, item);
 
         if (item.isBroken() && item.isEquipped())
         {
