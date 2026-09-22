@@ -2152,4 +2152,4 @@ function bool isBuffSellable(ItemInfo Item)
 	_temp = class'UIDATA_SKILL'.static.GetMpConsume(_skillId, Item.Enchanted);
 	if ( _temp > 0 )
 		AddTooltipItemOption(320, String(_temp), True, True, False);
-	
+}
