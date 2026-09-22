@@ -16,7 +16,6 @@ var bool b_ShowID;
 var bool isadmin;
 
 var int LastTooltipServerID;
-var int LastTooltipDurabilityIndex;
 var string LastTooltipRequestParam;
 var int LastTooltipRefreshServerID;
 var int LastTooltipRefreshDurability;
@@ -36,7 +35,6 @@ function OnLoad ()
     BoolSelect = True;
 
     LastTooltipServerID = -1;
-    LastTooltipDurabilityIndex = -1;
     LastTooltipRefreshServerID = -1;
     LastTooltipRefreshDurability = -1;
 }
@@ -1934,8 +1932,6 @@ function AddTooltipItemDurability (ItemInfo item)
 			tempColor = GetColortool(176,155,121,255);
 		}
 		AddTooltipColorText(" "$string(item.CurrentDurability)$"/"$string(item.Durability), tempColor, False, True);
-
-		LastTooltipDurabilityIndex = zzDeobfuscated4592.DrawList.Length - 1;
 		
 		AddTooltipItemBlank(4);
 	}
