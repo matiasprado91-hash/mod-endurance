@@ -20,8 +20,6 @@ var string m_LastTooltipParam;
 
 var int LastTooltipServerID;
 var string LastTooltipRequestParam;
-var int LastTooltipRefreshServerID;
-var int LastTooltipRefreshDurability;
 
 const MACROCOMMAND_MAX_COUNT= 12;
 const TOOLTIP_LINE_HGAP= 4;
@@ -38,8 +36,6 @@ function OnLoad ()
     BoolSelect = True;
 
     LastTooltipServerID = -1;
-    LastTooltipRefreshServerID = -1;
-    LastTooltipRefreshDurability = -1;
 }
 
 
@@ -130,9 +126,6 @@ function HandleInventoryItemUpdate(string param)
     {
         return;
     }
-
-    LastTooltipRefreshServerID = Info.ServerID;
-    LastTooltipRefreshDurability = Info.CurrentDurability;
 
     ExecuteEvent(2920, LastTooltipRequestParam);
 }
@@ -1207,13 +1200,6 @@ function ReturnTooltip_NTT_ITEM_FARIS (string param, string TooltipType, EToolti
 		{
 			FindItemByServerID(item.ServerID,item);
 		}
-
-        if( LastTooltipRefreshServerID == item.ServerID )
-        {
-            item.CurrentDurability = LastTooltipRefreshDurability;
-            LastTooltipRefreshServerID = -1;
-            LastTooltipRefreshDurability = -1;
-        }
 
 			
 
