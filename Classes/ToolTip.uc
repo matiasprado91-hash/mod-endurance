@@ -14,6 +14,9 @@ var int textHeight;
 var bool BoolSelect;
 var bool b_ShowID;
 var bool isadmin;
+var array<int> m_EnduranceObjectIDs;
+var array<int> m_EnduranceValues;
+var string m_LastTooltipParam;
 
 
 const MACROCOMMAND_MAX_COUNT= 12;
@@ -44,6 +47,7 @@ function OnEvent (int Event_ID, string index)
     switch (Event_ID)
     {
         case 2920:
+            m_LastTooltipParam = index;
             HandleRequestTooltipInfo(index);
             break;
 
@@ -57,6 +61,52 @@ function OnEvent (int Event_ID, string index)
 function Setadminboolean(bool NewValue)
 {
 	isadmin = NewValue;
+}
+
+function HandleEnduranceUpdate(string param)
+{
+	local int ObjectID;
+	local int Endurance;
+	local int i;
+
+	if ( !ParseInt(param, "ObjectID", ObjectID) )
+		return;
+
+	if ( !ParseInt(param, "Endurance", Endurance) )
+		return;
+
+	for ( i = 0; i < m_EnduranceObjectIDs.Length; ++i )
+	{
+		if ( m_EnduranceObjectIDs[i] == ObjectID )
+		{
+			m_EnduranceValues[i] = Endurance;
+			if ( m_LastTooltipParam != "" )
+				HandleRequestTooltipInfo(m_LastTooltipParam);
+			return;
+		}
+	}
+
+	i = m_EnduranceObjectIDs.Length;
+	m_EnduranceObjectIDs.Length = i + 1;
+	m_EnduranceValues.Length = i + 1;
+	m_EnduranceObjectIDs[i] = ObjectID;
+	m_EnduranceValues[i] = Endurance;
+
+	if ( m_LastTooltipParam != "" )
+		HandleRequestTooltipInfo(m_LastTooltipParam);
+}
+
+function int GetCachedEndurance(int ObjectID, int Fallback)
+{
+	local int i;
+
+	for ( i = 0; i < m_EnduranceObjectIDs.Length; ++i )
+	{
+		if ( m_EnduranceObjectIDs[i] == ObjectID )
+			return m_EnduranceValues[i];
+	}
+
+	return Fallback;
 }
 
 
@@ -1549,8 +1599,11 @@ function addItemIconCustom(ItemInfo item, string ForeTexture, int iconWidth, int
 
 function addTooltipID (ItemInfo item)
 {
+	local int Endurance;
+
+	Endurance = GetCachedEndurance(item.ServerID, item.CurrentDurability);
 	AddCrossLine();
-    AddTooltipColorText("Endurance : " $ string(item.CurrentDurability) $ " || L2Evolution", getAColor(176, 155, 121, 255), true, true,, "", 2);
+    AddTooltipColorText("Endurance : " $ string(Endurance) $ " || L2Evolution", getAColor(176, 155, 121, 255), true, true,, "", 2);
 }
 
 
