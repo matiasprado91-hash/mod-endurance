@@ -1732,8 +1732,9 @@ function HandleUpdateItem (string param)
 
 	/*
 	 * The native ItemWindow update above must not replace the selected
-	 * equipped item. Refresh the open tooltip directly with the same
-	 * 2610 payload so Endurance is redrawn immediately.
+	 * equipped item.
+	 * Rebuild the open tooltip from its original request so the latest
+	 * Endurance value is rendered immediately.
 	 */
 	if( Type == "update" )
 	{
