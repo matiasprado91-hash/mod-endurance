@@ -144,17 +144,6 @@ function int FindEnduranceCacheIndex(int ServerID)
     return -1;
 }
 
-function ApplyEnduranceCache(out ItemInfo Info)
-{
-    local int Index;
-
-    Index = FindEnduranceCacheIndex(Info.ServerID);
-    if( Index != -1 )
-    {
-        Info.CurrentDurability = EnduranceValues[Index];
-    }
-}
-
 function Setadminboolean(bool NewValue)
 {
 	isadmin = NewValue;
@@ -1221,9 +1210,7 @@ function ReturnTooltip_NTT_ITEM_FARIS (string param, string TooltipType, EToolti
 	if ( eSourceType == 1 )
 	{
 		ParamToItemInfo(param,item);
-		ApplyEnduranceCache(item);
-
-		LastTooltipRequestParam = param;
+LastTooltipRequestParam = param;
 
 
 		LastTooltipServerID = item.ServerID;
