@@ -1946,6 +1946,12 @@ function AddTooltipItemDurability (ItemInfo item)
 
 
 
+function AddTooltipItemOption (int TitleID, string Content, bool bTitle, bool bContent, bool isFirstLine)
+{
+	AddTooltipItemOptionfaris(TitleID, Content, bTitle, bContent, isFirstLine);
+}
+
+
 function AddTooltipItemOptionfaris (int TitleID, string Content, bool bTitle, bool bContent, bool isFirstLine, optional int offsetX, optional int offsetY, optional Color titleTextColor, optional Color contentTextColor)
 {
 	if ( bTitle )
