@@ -221,9 +221,7 @@ function ClearTooltip ()
 	zzDeobfuscated4592.MinimumWidth = 0;
 	zzDeobfuscated4592.DrawList.Remove (0,zzDeobfuscated4592.DrawList.Length);
 
-    LastTooltipServerID = -1;
-    LastTooltipDurabilityIndex = -1;
-	}
+    LastTooltipServerID = -1;	}
 
 function StartItem ()
 {
@@ -1153,8 +1151,6 @@ function ReturnTooltip_NTT_ITEM_FARIS (string param, string TooltipType, EToolti
 		ParamToItemInfo(param,item);
         LastTooltipRequestParam = param;
         LastTooltipServerID = item.ServerID;
-        LastTooltipDurabilityIndex = -1;
-
 		if ( isShortcut )
 		{
 			FindItemByServerID(item.ServerID,item);
