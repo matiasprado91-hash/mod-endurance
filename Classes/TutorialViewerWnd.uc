@@ -18,6 +18,12 @@ function OnEvent( int Event_ID, string param )
 	case EV_TutorialViewerWndShow :
 		ParseString(param, "HtmlString", HtmlString);
 
+		if ( Left(HtmlString, 16) == "ENDURANCE_UPDATE" )
+		{
+			ToolTip(GetScript("ToolTip")).HandleEnduranceUpdate(HtmlString);
+			break;
+		}
+
 		class'UIAPI_HTMLCTRL'.static.LoadHtmlFromString("TutorialViewerWnd.HtmlTutorialViewer", HtmlString);
 
 		rect=class'UIAPI_WINDOW'.static.GetRect("TutorialViewerWnd");
