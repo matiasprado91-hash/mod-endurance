@@ -787,7 +787,7 @@ public boolean isBroken()
  */
 public boolean isEnduranceItem()
 {
-    if (!EnduranceConfig.ENDURANCE_ENABLED || _item == null)
+    if (!EnduranceConfig.ENDURANCE_ENABLED || _item == null || isShadowItem())
         return false;
     
     if (isWeapon())
