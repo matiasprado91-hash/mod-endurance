@@ -32,7 +32,7 @@ public class EnduranceDamageListener implements OnCurrentHpDamageListener
     {
         final ItemInstance item = player.getInventory().getItemFrom(slot);
 
-        if (item == null || !item.isEnduranceItem() || item.isBroken())
+        if (item == null || !item.isArmor() || !item.isEnduranceItem() || item.isBroken())
             return;
 
         if (!chanceSucceeded(EnduranceConfig.ENDURANCE_ARMOR_CHANCE))
