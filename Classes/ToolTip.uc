@@ -101,6 +101,19 @@ function HandleEnduranceUpdate(string param)
 		HandleRequestTooltipInfo(m_LastTooltipParam);
 }
 
+function bool HasCachedEndurance(int ObjectID)
+{
+	local int i;
+
+	for ( i = 0; i < m_EnduranceObjectIDs.Length; ++i )
+	{
+		if ( m_EnduranceObjectIDs[i] == ObjectID )
+			return True;
+	}
+
+	return False;
+}
+
 function int GetCachedEndurance(int ObjectID, int Fallback)
 {
 	local int i;
@@ -1201,7 +1214,7 @@ function ReturnTooltip_NTT_ITEM_FARIS (string param, string TooltipType, EToolti
         LastTooltipRequestParam = param;
         LastTooltipServerID = item.ServerID;
 
-        if ( item.CurrentDurability >= 0 )
+        if ( item.CurrentDurability >= 0 && !HasCachedEndurance(item.ServerID) )
             SetCachedEndurance(item.ServerID, item.CurrentDurability);
 		if ( isShortcut )
 		{
