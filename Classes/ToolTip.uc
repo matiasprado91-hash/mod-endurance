@@ -55,6 +55,10 @@ function OnEvent (int Event_ID, string index)
             HandleRequestTooltipInfo(index);
             break;
 
+        case 580:
+            HandleEnduranceUpdate(index);
+            break;
+
         case 2610:
             HandleInventoryItemUpdate(index);
             break;
@@ -133,6 +137,11 @@ function HandleInventoryItemUpdate(string param)
     local ItemInfo Info;
 
     ParamToItemInfo(param, Info);
+
+    if( Info.CurrentDurability >= 0 )
+    {
+        SetCachedEndurance(Info.ServerID, Info.CurrentDurability);
+    }
 
     if( LastTooltipServerID != Info.ServerID )
     {
