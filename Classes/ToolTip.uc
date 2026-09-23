@@ -64,25 +64,15 @@ function OnEvent (int Event_ID, string index)
     }
 }
 
-function HandleEnduranceUpdate(string param)
+function SetCachedEndurance(int ObjectID, int Endurance)
 {
-	local int ObjectID;
-	local int Endurance;
 	local int i;
-
-	if ( !ParseInt(param, "ObjectID", ObjectID) )
-		return;
-
-	if ( !ParseInt(param, "Endurance", Endurance) )
-		return;
 
 	for ( i = 0; i < m_EnduranceObjectIDs.Length; ++i )
 	{
 		if ( m_EnduranceObjectIDs[i] == ObjectID )
 		{
 			m_EnduranceValues[i] = Endurance;
-			if ( m_LastTooltipParam != "" )
-				HandleRequestTooltipInfo(m_LastTooltipParam);
 			return;
 		}
 	}
@@ -92,8 +82,22 @@ function HandleEnduranceUpdate(string param)
 	m_EnduranceValues.Length = i + 1;
 	m_EnduranceObjectIDs[i] = ObjectID;
 	m_EnduranceValues[i] = Endurance;
+}
 
-	if ( m_LastTooltipParam != "" )
+function HandleEnduranceUpdate(string param)
+{
+	local int ObjectID;
+	local int Endurance;
+
+	if ( !ParseInt(param, "ObjectID", ObjectID) )
+		return;
+
+	if ( !ParseInt(param, "Endurance", Endurance) )
+		return;
+
+	SetCachedEndurance(ObjectID, Endurance);
+
+	if ( LastTooltipServerID == ObjectID && m_LastTooltipParam != "" )
 		HandleRequestTooltipInfo(m_LastTooltipParam);
 }
 
@@ -1196,6 +1200,9 @@ function ReturnTooltip_NTT_ITEM_FARIS (string param, string TooltipType, EToolti
 		ParamToItemInfo(param,item);
         LastTooltipRequestParam = param;
         LastTooltipServerID = item.ServerID;
+
+        if ( item.CurrentDurability >= 0 )
+            SetCachedEndurance(item.ServerID, item.CurrentDurability);
 		if ( isShortcut )
 		{
 			FindItemByServerID(item.ServerID,item);
