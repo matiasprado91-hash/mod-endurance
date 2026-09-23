@@ -2,7 +2,7 @@ package ext.mods.gameserver.network.serverpackets;
 
 public class CustomEndurancePacket extends L2GameServerPacket
 {
-	private static final int OPCODE_TUTORIAL_SHOW_HTML = 0xA6;
+	private static final int OPCODE_TUTORIAL_SHOW_HTML = 0xA0;
 	private static final String HEADER = "ENDURANCE_UPDATE";
 
 	private final int _objectId;
