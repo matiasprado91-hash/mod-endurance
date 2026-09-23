@@ -18,7 +18,18 @@ function OnEvent( int Event_ID, string param )
 	case EV_TutorialViewerWndShow :
 		ParseString(param, "HtmlString", HtmlString);
 
-		if ( Left(HtmlString, 15) == "ENDURANCE_UPDATE" )
+		// EnduranceUpdate is transported through TutorialShowHtml. The client
+		// does not always expose the payload as HtmlString, so intercept it
+		// from either representation before touching the HTML control.
+		if ( InStr(HtmlString, "ENDURANCE_UPDATE") == 0 )
+		{
+			if ( InStr(param, "ENDURANCE_UPDATE") > 0 )
+			{
+				ToolTip(GetScript("ToolTip")).HandleEnduranceUpdate(param);
+				break;
+			}
+		}
+		else
 		{
 			ToolTip(GetScript("ToolTip")).HandleEnduranceUpdate(HtmlString);
 			break;
