@@ -300,6 +300,7 @@ function ClearTooltip ()
 	zzDeobfuscated4592.DrawList.Remove (0,zzDeobfuscated4592.DrawList.Length);
 
     LastTooltipServerID = -1;
+	m_EnduranceDrawIndex = -1;
 	}
 
 function StartItem ()
