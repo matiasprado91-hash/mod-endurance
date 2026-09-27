@@ -21,13 +21,13 @@ function OnEvent( int Event_ID, string param )
 		// EnduranceUpdate is transported through TutorialShowHtml.
 		// Only a payload that starts with our private header is intercepted.
 		// All normal TutorialShowHtml content keeps the original behavior.
-		if ( Left(HtmlString, 15) == "ENDURANCE_UPDATE" )
+		if ( Left(HtmlString, 16) == "ENDURANCE_UPDATE" )
 		{
 			ToolTip(GetScript("ToolTip")).HandleEnduranceUpdate(HtmlString);
 			break;
 		}
 
-		if ( Left(param, 15) == "ENDURANCE_UPDATE" )
+		if ( Left(param, 16) == "ENDURANCE_UPDATE" )
 		{
 			ToolTip(GetScript("ToolTip")).HandleEnduranceUpdate(param);
 			break;
