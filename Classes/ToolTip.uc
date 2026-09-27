@@ -16,9 +16,6 @@ var bool b_ShowID;
 var bool isadmin;
 var array<int> m_EnduranceObjectIDs;
 var array<int> m_EnduranceValues;
-var string m_LastTooltipParam;
-var int m_EnduranceDrawIndex;
-
 var int LastTooltipServerID;
 var string LastTooltipRequestParam;
 
@@ -52,7 +49,6 @@ function OnEvent (int Event_ID, string index)
     switch (Event_ID)
     {
         case 2920:
-            m_LastTooltipParam = index;
             HandleRequestTooltipInfo(index);
             break;
 
@@ -102,20 +98,13 @@ function HandleEnduranceUpdate(string param)
 
 	SetCachedEndurance(ObjectID, Endurance);
 
-	if ( LastTooltipServerID == ObjectID )
-		UpdateEnduranceLine(Endurance);
-}
-
-function UpdateEnduranceLine(int Endurance)
-{
-	if ( m_EnduranceDrawIndex < 0 )
+	if ( LastTooltipServerID != ObjectID )
 		return;
 
-	if ( m_EnduranceDrawIndex >= zzDeobfuscated4592.DrawList.Length )
+	if ( LastTooltipRequestParam == "" )
 		return;
 
-	zzDeobfuscated4592.DrawList[m_EnduranceDrawIndex].t_strText = "Endurance : " $ string(Endurance) $ " || L2Evolution";
-	ReturnTooltipInfo(zzDeobfuscated4592);
+	ExecuteEvent(2920, LastTooltipRequestParam);
 }
 
 function bool HasCachedEndurance(int ObjectID)
@@ -300,7 +289,6 @@ function ClearTooltip ()
 	zzDeobfuscated4592.DrawList.Remove (0,zzDeobfuscated4592.DrawList.Length);
 
     LastTooltipServerID = -1;
-	m_EnduranceDrawIndex = -1;
 	}
 
 function StartItem ()
@@ -1673,7 +1661,6 @@ function addTooltipID (ItemInfo item)
 	Endurance = GetCachedEndurance(item.ServerID, item.CurrentDurability);
 	AddCrossLine();
 
-	m_EnduranceDrawIndex = zzDeobfuscated4592.DrawList.Length;
     AddTooltipColorText("Endurance : " $ string(Endurance) $ " || L2Evolution", getAColor(176, 155, 121, 255), true, true,, "", 2);
 }
 
