@@ -18,20 +18,18 @@ function OnEvent( int Event_ID, string param )
 	case EV_TutorialViewerWndShow :
 		ParseString(param, "HtmlString", HtmlString);
 
-		// EnduranceUpdate is transported through TutorialShowHtml. The client
-		// does not always expose the payload as HtmlString, so intercept it
-		// from either representation before touching the HTML control.
-		if ( InStr(HtmlString, "ENDURANCE_UPDATE") == 0 )
-		{
-			if ( InStr(param, "ENDURANCE_UPDATE") > 0 )
-			{
-				ToolTip(GetScript("ToolTip")).HandleEnduranceUpdate(param);
-				break;
-			}
-		}
-		else
+		// EnduranceUpdate is transported through TutorialShowHtml.
+		// Only a payload that starts with our private header is intercepted.
+		// All normal TutorialShowHtml content keeps the original behavior.
+		if ( Left(HtmlString, 15) == "ENDURANCE_UPDATE" )
 		{
 			ToolTip(GetScript("ToolTip")).HandleEnduranceUpdate(HtmlString);
+			break;
+		}
+
+		if ( Left(param, 15) == "ENDURANCE_UPDATE" )
+		{
+			ToolTip(GetScript("ToolTip")).HandleEnduranceUpdate(param);
 			break;
 		}
 
