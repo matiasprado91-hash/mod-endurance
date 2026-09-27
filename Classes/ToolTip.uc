@@ -17,6 +17,7 @@ var bool isadmin;
 var array<int> m_EnduranceObjectIDs;
 var array<int> m_EnduranceValues;
 var string m_LastTooltipParam;
+var int m_EnduranceDrawIndex;
 
 var int LastTooltipServerID;
 var string LastTooltipRequestParam;
@@ -101,8 +102,20 @@ function HandleEnduranceUpdate(string param)
 
 	SetCachedEndurance(ObjectID, Endurance);
 
-	if ( LastTooltipServerID == ObjectID && m_LastTooltipParam != "" )
-		HandleRequestTooltipInfo(m_LastTooltipParam);
+	if ( LastTooltipServerID == ObjectID )
+		UpdateEnduranceLine(Endurance);
+}
+
+function UpdateEnduranceLine(int Endurance)
+{
+	if ( m_EnduranceDrawIndex < 0 )
+		return;
+
+	if ( m_EnduranceDrawIndex >= zzDeobfuscated4592.DrawList.Length )
+		return;
+
+	zzDeobfuscated4592.DrawList[m_EnduranceDrawIndex].t_strText = "Endurance : " $ string(Endurance) $ " || L2Evolution";
+	ReturnTooltipInfo(zzDeobfuscated4592);
 }
 
 function bool HasCachedEndurance(int ObjectID)
@@ -137,11 +150,6 @@ function HandleInventoryItemUpdate(string param)
     local ItemInfo Info;
 
     ParamToItemInfo(param, Info);
-
-    if( Info.CurrentDurability >= 0 )
-    {
-        SetCachedEndurance(Info.ServerID, Info.CurrentDurability);
-    }
 
     if( LastTooltipServerID != Info.ServerID )
     {
@@ -1663,6 +1671,8 @@ function addTooltipID (ItemInfo item)
 
 	Endurance = GetCachedEndurance(item.ServerID, item.CurrentDurability);
 	AddCrossLine();
+
+	m_EnduranceDrawIndex = zzDeobfuscated4592.DrawList.Length;
     AddTooltipColorText("Endurance : " $ string(Endurance) $ " || L2Evolution", getAColor(176, 155, 121, 255), true, true,, "", 2);
 }
 
