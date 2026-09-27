@@ -141,7 +141,18 @@ public final class ItemInstance extends WorldObject implements Runnable, Compara
 		_loc = ItemLocation.valueOf(rs.getString("loc"));
 		_locationSlot = rs.getInt("loc_data");
 		_manaLeft = rs.getInt("mana_left");
-		_endurance = rs.getInt("endurance");
+		
+		final int storedEndurance = rs.getInt("endurance");
+		_endurance = storedEndurance;
+		
+		// Older databases can contain the sentinel -1 after the Endurance column
+		// is added. Endurance equipment must start at the configured maximum.
+		if (storedEndurance < 0 && isEnduranceItem())
+		{
+			_endurance = getDefaultEndurance();
+			ItemInstanceTaskManager.getInstance().add(this);
+		}
+		
 		_time = rs.getLong("time");
 		
 		setName(_item.getName());
