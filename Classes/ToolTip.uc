@@ -18,6 +18,7 @@ var array<int> m_EnduranceObjectIDs;
 var array<int> m_EnduranceValues;
 var int LastTooltipServerID;
 var string LastTooltipRequestParam;
+var int m_EnduranceDrawIndex;
 
 const MACROCOMMAND_MAX_COUNT= 12;
 const TOOLTIP_LINE_HGAP= 4;
@@ -34,6 +35,7 @@ function OnLoad ()
     BoolSelect = True;
 
     LastTooltipServerID = -1;
+    m_EnduranceDrawIndex = -1;
 }
 
 
@@ -101,10 +103,15 @@ function HandleEnduranceUpdate(string param)
 	if ( LastTooltipServerID != ObjectID )
 		return;
 
-	if ( LastTooltipRequestParam == "" )
+	if ( m_EnduranceDrawIndex < 0 )
 		return;
 
-	ExecuteEvent(2920, LastTooltipRequestParam);
+	if ( m_EnduranceDrawIndex >= zzDeobfuscated4592.DrawList.Length )
+		return;
+
+	zzDeobfuscated4592.DrawList[m_EnduranceDrawIndex].t_strText = "Endurance : " $ string(Endurance) $ " || L2Evolution";
+
+	ReturnTooltipInfo(zzDeobfuscated4592);
 }
 
 function bool HasCachedEndurance(int ObjectID)
@@ -289,6 +296,7 @@ function ClearTooltip ()
 	zzDeobfuscated4592.DrawList.Remove (0,zzDeobfuscated4592.DrawList.Length);
 
     LastTooltipServerID = -1;
+    m_EnduranceDrawIndex = -1;
 	}
 
 function StartItem ()
@@ -1662,6 +1670,7 @@ function addTooltipID (ItemInfo item)
 	AddCrossLine();
 
     AddTooltipColorText("Endurance : " $ string(Endurance) $ " || L2Evolution", getAColor(176, 155, 121, 255), true, true,, "", 2);
+    m_EnduranceDrawIndex = zzDeobfuscated4592.DrawList.Length - 1;
 }
 
 
