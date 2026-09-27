@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS `items` (
   `custom_type1` INT NOT NULL DEFAULT 0,
   `custom_type2` INT NOT NULL DEFAULT 0,
   `mana_left` INT NOT NULL DEFAULT -1,
-  `endurance` INT NOT NULL DEFAULT 0,
+  `endurance` INT NOT NULL DEFAULT -1,
   `time` BIGINT NOT NULL DEFAULT 0,
   PRIMARY KEY (object_id)
 );
